@@ -1,0 +1,17 @@
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pdesign-space-2x, 8px);
+  padding: var(--pdesign-space-3x, 12px) var(--pdesign-space-6x, 24px);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 0 rgba(17, 17, 26, 0.04);
+  position: relative;
+  z-index: 1;
+}
+
+.accent {
+  color: var(--pdesign-color-element-brandhighlight-onlightprimary, #d81226);
+}

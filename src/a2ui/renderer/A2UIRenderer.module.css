@@ -1,0 +1,11 @@
+.unsupported {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 2px dashed #d81226;
+  border-radius: 6px;
+  background: rgba(216, 18, 38, 0.06);
+  color: #d81226;
+  font: 13px/1.4 ui-monospace, Consolas, monospace;
+}

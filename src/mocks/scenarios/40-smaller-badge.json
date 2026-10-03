@@ -1,0 +1,19 @@
+{
+  "id": "smaller-badge",
+  "experienceIds": ["basic-plan-mobile"],
+  "match": ["smaller badge", "badge.*smaller", "shrink.*badge", "badge.*too big"],
+  "steps": [
+    { "label": "Reading the tile structure", "ms": 450 },
+    { "label": "Checking VDS patterns", "ms": 500 },
+    { "label": "Applying change", "ms": 450 }
+  ],
+  "outcome": {
+    "kind": "edit",
+    "patch": [
+      { "op": "add", "path": "/components/badge/padding", "value": "2px 8px" },
+      { "op": "add", "path": "/components/badge/maxWidth", "value": "110px" }
+    ],
+    "summary": "Badge made smaller",
+    "message": "Done — the badge now uses the compact VDS size."
+  }
+}

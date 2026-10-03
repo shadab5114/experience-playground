@@ -1,0 +1,49 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tile {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pdesign-color-element-primary-onlightprimary, #000);
+  box-shadow: 0 1px 2px rgba(17, 17, 26, 0.04);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(17, 17, 26, 0.1);
+  border-color: rgba(216, 18, 38, 0.35);
+}
+
+.tileDescription {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pdesign-color-element-secondary-onlightprimary, #6f6d6a);
+}
+
+.empty {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--pdesign-color-element-secondary-onlightprimary, #6f6d6a);
+  padding: 8px 0;
+}

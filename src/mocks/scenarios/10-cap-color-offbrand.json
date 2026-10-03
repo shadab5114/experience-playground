@@ -1,0 +1,14 @@
+{
+  "id": "cap-color-offbrand",
+  "experienceIds": ["basic-plan-mobile"],
+  "match": ["neon pink", "hot pink", "#[0-9a-fA-F]{3,6}", "\\bmagenta\\b", "\\bturquoise\\b"],
+  "steps": [
+    { "label": "Reading the tile structure", "ms": 500 },
+    { "label": "Checking VDS patterns", "ms": 600 }
+  ],
+  "outcome": {
+    "kind": "refusal",
+    "reason": "That color isn't in the approved VDS palette for a plan tile's cap.",
+    "alternatives": ["Change the cap color to red", "Change the cap color to black", "Change the cap color to blue"]
+  }
+}

@@ -1,0 +1,89 @@
+.stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--pdesign-color-element-secondary-onlightprimary, #6f6d6a);
+  font-size: 14px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  overflow-x: auto;
+}
+
+.tab {
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--pdesign-color-element-secondary-onlightprimary, #6f6d6a);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--pdesign-color-element-primary-onlightprimary, #000);
+}
+
+.tabActive {
+  composes: tab;
+  background: rgba(216, 18, 38, 0.1);
+  border-color: rgba(216, 18, 38, 0.3);
+  color: var(--pdesign-color-element-brandhighlight-onlightprimary, #d81226);
+}
+
+.pageStage {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  background: rgba(247, 246, 243, 0.55);
+}
+
+.pageStageMobile {
+  display: flex;
+  justify-content: center;
+}
+
+.pageStageMobile .pageInner {
+  width: 100%;
+  max-width: 375px;
+}
+
+/*
+ * Slot wrapper treatment — applied here, not inside the renderer or the
+ * composition, per docs/decisions/impact-pages-slot-hosting.md step 5.
+ * `.a2ui-slot-host`/`.a2ui-slot-label` are the stable, non-module-scoped
+ * hooks A2UIRenderer's SlotNode always renders around a hosted composition
+ * (default-hidden in src/index.css); this view is what makes them visible.
+ */
+.pageStage :global(.a2ui-slot-host) {
+  display: block;
+  outline: 2px dashed var(--pdesign-color-element-brandhighlight-onlightprimary, #d81226);
+  outline-offset: 6px;
+  border-radius: 10px;
+  margin: 24px 2px 2px;
+}
+
+.pageStage :global(.a2ui-slot-label) {
+  opacity: 1;
+}
+
+/* A placement's `variant` styles the slot wrapper only — never the composition itself. */
+.pageStage.variantCompact :global(.a2ui-slot-host) {
+  max-width: 320px;
+}

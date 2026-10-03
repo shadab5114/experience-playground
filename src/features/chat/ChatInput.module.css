@@ -1,0 +1,57 @@
+.form {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.input {
+  flex: 1;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  border-color: rgba(216, 18, 38, 0.45);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.input:disabled {
+  background: rgba(247, 246, 243, 0.6);
+  color: var(--pdesign-color-element-secondary-onlightprimary, #6f6d6a);
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: linear-gradient(145deg, #e3273f, #c70f26);
+  color: #fff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(199, 15, 38, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.submit:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.03);
+}
+
+.submit:disabled {
+  background: var(--pdesign-color-gray-200, #dad7d0);
+  color: var(--pdesign-color-element-secondary-onlightprimary, #6f6d6a);
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}

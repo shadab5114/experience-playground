@@ -1,0 +1,20 @@
+[
+  {
+    "id": "basic-plan-mobile",
+    "name": "Basic Plan – Mobile",
+    "description": "The Basic Plan tile as shown on mobile.",
+    "compositionId": "basic-plan-tile"
+  },
+  {
+    "id": "home-plan",
+    "name": "Home Plan",
+    "description": "The Home Plan tile.",
+    "compositionId": "home-plan-tile"
+  },
+  {
+    "id": "order-summary",
+    "name": "Order Summary",
+    "description": "The Order Summary tile.",
+    "compositionId": "order-summary-tile"
+  }
+]

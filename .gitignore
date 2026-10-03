@@ -1,0 +1,12 @@
+.env
+node_modules/
+bun.lockb
+dist/
+dist-ssr/
+*.local
+coverage/
+playwright-report/
+test-results/
+.vscode/*
+!.vscode/extensions.json
+*.log

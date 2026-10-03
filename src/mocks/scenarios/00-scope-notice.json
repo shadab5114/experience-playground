@@ -1,0 +1,18 @@
+{
+  "id": "scope-notice",
+  "experienceIds": ["basic-plan-mobile"],
+  "match": [
+    "\\bheader\\b",
+    "\\bfooter\\b",
+    "\\bpdp\\b",
+    "\\baal\\b",
+    "order summary page",
+    "home plan",
+    "another experience"
+  ],
+  "steps": [],
+  "outcome": {
+    "kind": "scope",
+    "message": "I can only work on the active composition (Basic Plan – Mobile). Close this task to switch to another experience or page."
+  }
+}

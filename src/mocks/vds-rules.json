@@ -1,0 +1,14 @@
+{
+  "capColors": [
+    { "token": "red", "name": "Verizon Red" },
+    { "token": "black", "name": "Black" },
+    { "token": "blue", "name": "Blue" },
+    { "token": "grayHighContrast", "name": "Gray (High Contrast)" },
+    { "token": "grayLowContrast", "name": "Gray (Low Contrast)" },
+    { "token": "green", "name": "Green" },
+    { "token": "orange", "name": "Orange" },
+    { "token": "yellow", "name": "Yellow" },
+    { "token": "neonYellow", "name": "Neon Yellow" },
+    { "token": "white", "name": "White" }
+  ]
+}

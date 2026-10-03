@@ -1,0 +1,70 @@
+:root {
+  color-scheme: light dark;
+
+  /* Liquid-glass chrome tokens. Shared by the app shell, panes, toolbar and
+     chat chrome so the "floating frosted panel" look stays consistent. */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-blur: blur(20px) saturate(180%);
+  --glass-shadow:
+    0 8px 32px rgba(17, 17, 26, 0.08),
+    0 2px 8px rgba(17, 17, 26, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* A soft ambient wash so the frosted glass panels have translucency to
+     show against, without competing with the content on top of them. */
+  background:
+    radial-gradient(1100px 700px at 8% -10%, rgba(216, 18, 38, 0.07), transparent 60%),
+    radial-gradient(900px 650px at 105% 10%, rgba(59, 130, 246, 0.06), transparent 60%),
+    radial-gradient(800px 600px at 50% 120%, rgba(34, 197, 94, 0.05), transparent 60%),
+    linear-gradient(180deg, #f3f3f1, #eceae6);
+  background-attachment: fixed;
+}
+
+/*
+ * Stable, cross-cutting hooks A2UIRenderer's Slot handling always renders
+ * around a hosted composition (src/a2ui/renderer/A2UIRenderer.tsx) — never
+ * module-scoped, so a host context (the Impacts view) can target them from
+ * its own CSS module via :global(...) without the renderer knowing about
+ * that context. Default: present in the DOM (real text, for accessibility
+ * and testability — not a CSS ::before) but invisible; a host opts in.
+ * See docs/decisions/impact-pages-slot-hosting.md step 5.
+ */
+.a2ui-slot-host {
+  position: relative;
+}
+
+.a2ui-slot-label {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--pdesign-color-element-brandhighlight-onlightprimary, #d81226);
+  color: #fff;
+}

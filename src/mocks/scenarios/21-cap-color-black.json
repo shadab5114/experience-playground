@@ -1,0 +1,17 @@
+{
+  "id": "cap-color-black",
+  "experienceIds": ["basic-plan-mobile"],
+  "match": ["cap.*\\bblack\\b", "\\bblack\\b.*cap"],
+  "steps": [
+    { "label": "Reading the tile structure", "ms": 500 },
+    { "label": "Checking VDS patterns", "ms": 600 },
+    { "label": "Applying change", "ms": 500 },
+    { "label": "Validating against brand rules", "ms": 450 }
+  ],
+  "outcome": {
+    "kind": "edit",
+    "patch": [{ "op": "add", "path": "/components/badge/backgroundColor", "value": "black" }],
+    "summary": "Cap color changed to Black",
+    "message": "Done — the cap now uses the approved VDS black token."
+  }
+}

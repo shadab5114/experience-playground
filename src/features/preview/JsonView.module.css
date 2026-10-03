@@ -1,0 +1,32 @@
+.jsonView {
+  flex: 1 1 auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 16px;
+  height: 100%;
+  overflow: auto;
+  font: 13px/1.5 ui-monospace, Consolas, monospace;
+  background: var(--pdesign-color-surface-darkprimary, #000);
+  color: var(--pdesign-color-element-primary-ondarkprimary, #fff);
+}
+
+.key {
+  color: #7dd3fc;
+}
+
+.string {
+  color: #86efac;
+}
+
+.number {
+  color: #fca5a5;
+}
+
+.boolean {
+  color: #fcd34d;
+}
+
+.null {
+  color: #a8a6a0;
+}
