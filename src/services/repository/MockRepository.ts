@@ -2,6 +2,7 @@ import type { Composition, CompositionMapping, Experience, PageTemplate, SavedCo
 import type { Repository } from './Repository'
 import experiencesData from '../../mocks/experiences.json'
 import mappingsData from '../../mocks/mappings.json'
+import { readSavedComposition, writeSavedComposition } from './savedCompositions'
 
 // Eagerly bundled so a new fixture file needs no wiring beyond dropping it here.
 const compositionModules = import.meta.glob<{ default: { id: string; name: string; a2ui: unknown } }>(
@@ -32,8 +33,6 @@ const mappingsByCompositionId = new Map<string, CompositionMapping>(
   (mappingsData as CompositionMapping[]).map((mapping) => [mapping.compositionId, mapping]),
 )
 
-const SAVE_KEY_PREFIX = 'experience-playground:saved:'
-
 /**
  * Fixtures + localStorage, per the plan's Mock repository section. Catalog,
  * compositions, page templates, mappings and scenarios load from static
@@ -62,16 +61,11 @@ export class MockRepository implements Repository {
     return template
   }
 
-  async getSavedComposition(compositionId: string): Promise<SavedComposition | null> {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY_PREFIX + compositionId)
-      return raw ? (JSON.parse(raw) as SavedComposition) : null
-    } catch {
-      return null
-    }
+  getSavedComposition(compositionId: string): Promise<SavedComposition | null> {
+    return readSavedComposition(compositionId)
   }
 
-  async saveComposition(saved: SavedComposition): Promise<void> {
-    localStorage.setItem(SAVE_KEY_PREFIX + saved.compositionId, JSON.stringify(saved))
+  saveComposition(saved: SavedComposition): Promise<void> {
+    return writeSavedComposition(saved)
   }
 }

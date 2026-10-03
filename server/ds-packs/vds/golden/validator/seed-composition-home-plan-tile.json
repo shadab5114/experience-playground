@@ -1,0 +1,116 @@
+{
+  "name": "seeded composition: home-plan-tile",
+  "kind": "composition",
+  "document": {
+    "meta": {
+      "provider": "mock",
+      "model": "experience-playground-fixture",
+      "catalogId": "https://pdesign.dev/catalog/v1/catalog.json",
+      "components": [
+        "TileContainer",
+        "Stack",
+        "Badge",
+        "Text"
+      ],
+      "generatedAt": "2026-10-01T00:00:00.000Z"
+    },
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "main",
+          "path": "/",
+          "value": {
+            "plan": {
+              "eyebrow": "HOME INTERNET",
+              "name": "Home Plan",
+              "price": "$50/mo"
+            }
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "TileContainer",
+              "surface": "lightPrimary",
+              "background": "lightSecondary",
+              "padding": "6X",
+              "borderRadius": "standard",
+              "dropShadow": "subtle",
+              "aspectRatio": "none",
+              "width": "100%",
+              "children": [
+                "content"
+              ]
+            },
+            {
+              "id": "content",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "8px",
+              "align": "start",
+              "children": [
+                "badge",
+                "eyebrow",
+                "title",
+                "subtitle"
+              ]
+            },
+            {
+              "id": "badge",
+              "component": "Badge",
+              "backgroundColor": "blue",
+              "children": "New"
+            },
+            {
+              "id": "eyebrow",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "bold": true,
+              "color": "var(--pdesign-color-element-secondary-onlightprimary)",
+              "children": {
+                "path": "/plan/eyebrow"
+              }
+            },
+            {
+              "id": "title",
+              "component": "Text",
+              "kind": "title",
+              "size": "large",
+              "bold": true,
+              "children": {
+                "path": "/plan/name"
+              }
+            },
+            {
+              "id": "subtitle",
+              "component": "Text",
+              "kind": "body",
+              "size": "large",
+              "children": {
+                "path": "/plan/price"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [],
+    "warnings": []
+  }
+}

@@ -4,9 +4,18 @@ A two-pane workspace where designers pick a VDS experience, prompt an agent to
 change it, and see the result rendered from A2UI JSON, including its impact on
 the real pages where it appears. Full plan: docs/PLAN.md. Read it before any task.
 
+## Repo map
+- Playground: repo root (src/, tests/). Plan: docs/PLAN.md.
+- Backend: server/ (Bun + Hono + Postgres). Plan: docs/BACKEND_PLAN.md.
+  Rules: server/CLAUDE.md. Backend paths in the plan are relative to server/.
+- Shared contract: server/packages/contract (AgentRequest, AgentEvent, composition
+  types). Both the playground and the backend import it; do not duplicate these types.
+- Backend code lives only in server/.
+
 ## Phase 1 rules
-- UI first. No real LLM, no backend. All agent behavior comes from mock
-  scenario JSON in src/mocks/scenarios.
+- Mock is the default; remote mode talks to the Experience Agent backend.
+  Mock: all agent behavior comes from scenario JSON in src/mocks/scenarios.
+  Remote: set VITE_DATA_SOURCE=remote and run the backend in server/ (see Repo map).
 - The UI talks to two interfaces only: AgentClient and Repository
   (src/services). Only the task store calls them.
 - Everything shown in the preview and impact tabs is rendered from A2UI.

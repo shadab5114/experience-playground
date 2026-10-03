@@ -1,0 +1,46 @@
+{
+  "name": "Slot inside a composition",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "slot"
+              ]
+            },
+            {
+              "id": "slot",
+              "component": "Slot",
+              "slotId": "plan-summary"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "catalog",
+        "code": "not-allowed-in-kind",
+        "componentId": "slot"
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "name": "surfaceId changed from the current document",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "other",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "other",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "t"
+              ]
+            },
+            {
+              "id": "t",
+              "component": "Text",
+              "children": "Hello"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "current": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "t"
+              ]
+            },
+            {
+              "id": "t",
+              "component": "Text",
+              "children": "Hello"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "scope",
+        "code": "scope-surface-id"
+      }
+    ],
+    "warnings": []
+  }
+}

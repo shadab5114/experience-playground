@@ -1,0 +1,13 @@
+{
+  "name": "vds",
+  "a2uiVersion": "v0.9",
+  "catalogId": "https://pdesign.dev/catalog/v1/catalog.json",
+  "catalogPackage": {
+    "name": "@shadab5114/pds-core",
+    "version": "1.0.0-alpha.10"
+  },
+  "guidelines": {
+    "collection": "vds-guidelines"
+  },
+  "compositionTypes": ["plan-tile", "summary-tile"]
+}

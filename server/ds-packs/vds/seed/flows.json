@@ -1,0 +1,14 @@
+[
+  {
+    "id": "pdp",
+    "name": "PDP"
+  },
+  {
+    "id": "aal",
+    "name": "AAL"
+  },
+  {
+    "id": "order-summary",
+    "name": "Order Summary"
+  }
+]

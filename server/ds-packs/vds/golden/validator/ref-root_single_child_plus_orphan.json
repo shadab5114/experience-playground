@@ -1,0 +1,54 @@
+{
+  "name": "reference: root_single_child_plus_orphan",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "TileContainer",
+              "child": "inner"
+            },
+            {
+              "id": "inner",
+              "component": "Text",
+              "children": "Hi"
+            },
+            {
+              "id": "extra",
+              "component": "Button",
+              "children": "Extra"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "catalog",
+        "code": "prop-undeclared",
+        "componentId": "root"
+      },
+      {
+        "layer": "structure",
+        "code": "orphan",
+        "componentId": "extra"
+      }
+    ],
+    "warnings": []
+  }
+}

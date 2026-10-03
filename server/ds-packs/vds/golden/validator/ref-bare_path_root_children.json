@@ -1,0 +1,68 @@
+{
+  "name": "reference: bare_path_root_children",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": {
+                "path": "form"
+              },
+              "direction": "column"
+            },
+            {
+              "id": "name",
+              "component": "InputField",
+              "label": "Name"
+            },
+            {
+              "id": "go",
+              "component": "Button",
+              "children": "Go"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "catalog",
+        "code": "prop-invalid",
+        "componentId": "root"
+      },
+      {
+        "layer": "structure",
+        "code": "orphan",
+        "componentId": "go"
+      },
+      {
+        "layer": "structure",
+        "code": "orphan",
+        "componentId": "name"
+      }
+    ],
+    "warnings": [
+      {
+        "layer": "bindings",
+        "code": "unresolved-binding",
+        "componentId": "root"
+      }
+    ]
+  }
+}

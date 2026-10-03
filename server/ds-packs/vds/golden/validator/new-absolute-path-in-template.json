@@ -1,0 +1,71 @@
+{
+  "name": "absolute path inside a repeated template",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "main",
+          "path": "/",
+          "value": {
+            "plans": [
+              {
+                "features": "Fast"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": {
+                "componentId": "plan",
+                "path": "/plans"
+              }
+            },
+            {
+              "id": "plan",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "features"
+              ]
+            },
+            {
+              "id": "features",
+              "component": "Text",
+              "children": {
+                "path": "/plans/0/features"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [],
+    "warnings": [
+      {
+        "layer": "structure",
+        "code": "absolute-path-in-template",
+        "componentId": "features"
+      }
+    ]
+  }
+}

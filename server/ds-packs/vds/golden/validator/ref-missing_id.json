@@ -1,0 +1,68 @@
+{
+  "name": "reference: missing_id",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": [
+                "a"
+              ],
+              "direction": "column"
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A"
+            },
+            {
+              "component": "Button",
+              "children": "no id"
+            },
+            {
+              "id": 7,
+              "component": "Text",
+              "children": "numeric id"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "rules",
+        "code": "DS-101"
+      },
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "a"
+      },
+      {
+        "layer": "structure",
+        "code": "component-no-id"
+      },
+      {
+        "layer": "structure",
+        "code": "component-no-id"
+      }
+    ],
+    "warnings": []
+  }
+}

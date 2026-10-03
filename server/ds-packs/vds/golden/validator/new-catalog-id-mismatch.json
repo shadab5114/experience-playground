@@ -1,0 +1,45 @@
+{
+  "name": "catalogId does not match the pack catalog",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://example.test/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "t"
+              ]
+            },
+            {
+              "id": "t",
+              "component": "Text",
+              "children": "Hello"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "envelope",
+        "code": "catalog-id-mismatch"
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "name": "DS-101: two primary buttons on one surface",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "a",
+                "b"
+              ]
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A"
+            },
+            {
+              "id": "b",
+              "component": "Button",
+              "children": "B"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "a"
+      },
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "b"
+      }
+    ],
+    "warnings": []
+  }
+}

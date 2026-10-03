@@ -1,0 +1,45 @@
+{
+  "name": "DS-102: input without a label",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "e"
+              ]
+            },
+            {
+              "id": "e",
+              "component": "InputField"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "rules",
+        "code": "DS-102",
+        "componentId": "e"
+      }
+    ],
+    "warnings": []
+  }
+}

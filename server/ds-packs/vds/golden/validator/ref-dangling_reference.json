@@ -1,0 +1,78 @@
+{
+  "name": "reference: dangling_reference",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": [
+                "a",
+                "ghost"
+              ],
+              "direction": "column"
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A"
+            },
+            {
+              "id": "modal",
+              "component": "Modal",
+              "child": "nowhere"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "catalog",
+        "code": "prop-invalid",
+        "componentId": "modal"
+      },
+      {
+        "layer": "catalog",
+        "code": "prop-invalid",
+        "componentId": "modal"
+      },
+      {
+        "layer": "catalog",
+        "code": "prop-undeclared",
+        "componentId": "modal"
+      },
+      {
+        "layer": "structure",
+        "code": "dangling-reference",
+        "componentId": "modal"
+      },
+      {
+        "layer": "structure",
+        "code": "dangling-reference",
+        "componentId": "root"
+      },
+      {
+        "layer": "structure",
+        "code": "orphan",
+        "componentId": "modal"
+      }
+    ],
+    "warnings": []
+  }
+}

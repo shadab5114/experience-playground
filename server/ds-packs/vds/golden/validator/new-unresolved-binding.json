@@ -1,0 +1,60 @@
+{
+  "name": "binding path not in the data model",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "main",
+          "path": "/",
+          "value": {
+            "plan": {
+              "name": "Basic"
+            }
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "t"
+              ]
+            },
+            {
+              "id": "t",
+              "component": "Text",
+              "children": {
+                "path": "/plan/price"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [],
+    "warnings": [
+      {
+        "layer": "bindings",
+        "code": "unresolved-binding",
+        "componentId": "t"
+      }
+    ]
+  }
+}

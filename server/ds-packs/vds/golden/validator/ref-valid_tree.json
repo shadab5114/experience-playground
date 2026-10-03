@@ -1,0 +1,47 @@
+{
+  "name": "reference: valid_tree",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": [
+                "email",
+                "submit"
+              ],
+              "direction": "column"
+            },
+            {
+              "id": "email",
+              "component": "InputField",
+              "label": "Email"
+            },
+            {
+              "id": "submit",
+              "component": "Button",
+              "children": "Sign in"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [],
+    "warnings": []
+  }
+}

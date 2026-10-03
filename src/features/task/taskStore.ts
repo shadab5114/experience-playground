@@ -1,14 +1,11 @@
 import { create } from 'zustand'
-import type { AgentClient } from '../../services/agent/AgentClient'
-import { MockAgentClient } from '../../services/agent/MockAgentClient'
-import type { Repository } from '../../services/repository/Repository'
-import { MockRepository } from '../../services/repository/MockRepository'
+import { services } from '../../services/createServices'
 import type { ChatMessage, CompositionMapping, Experience, PageTemplate, TaskState } from '../../types/domain'
 
 // Only this store talks to AgentClient/Repository — see "How a prompt
 // travels" in docs/PLAN.md. UI components only read/write this store.
-const agentClient: AgentClient = new MockAgentClient()
-const repository: Repository = new MockRepository()
+// Which implementations run (mock or remote) is decided in createServices.ts.
+const { agentClient, repository } = services
 
 function newId(): string {
   return crypto.randomUUID()
@@ -130,14 +127,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     try {
       const req = {
-        threadId: task.threadId,
         experienceId: task.experienceId,
         compositionId: task.compositionId,
         currentA2ui: currentA2ui(task),
         prompt: text,
       }
 
-      for await (const event of agentClient.sendPrompt(req)) {
+      for await (const event of agentClient.sendPrompt(task.threadId, req)) {
         if (event.type === 'status') {
           const existing = steps.find((s) => s.id === event.stepId)
           if (existing) {

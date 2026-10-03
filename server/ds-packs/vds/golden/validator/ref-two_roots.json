@@ -1,0 +1,75 @@
+{
+  "name": "reference: two_roots",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": [
+                "a"
+              ],
+              "direction": "column"
+            },
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": [
+                "b"
+              ],
+              "direction": "row"
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A"
+            },
+            {
+              "id": "b",
+              "component": "Button",
+              "children": "B"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "envelope",
+        "code": "duplicate-root",
+        "componentId": "root"
+      },
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "a"
+      },
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "b"
+      },
+      {
+        "layer": "structure",
+        "code": "duplicate-id",
+        "componentId": "root"
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -47,7 +47,7 @@ export class MockAgentClient implements AgentClient {
     this.scenarios = scenarios
   }
 
-  async *sendPrompt(req: AgentRequest, signal?: AbortSignal): AsyncIterable<AgentEvent> {
+  async *sendPrompt(_threadId: string, req: AgentRequest, signal?: AbortSignal): AsyncIterable<AgentEvent> {
     const scenario = findMatchingScenario(this.scenarios, req.experienceId, req.prompt)
 
     if (!scenario) {

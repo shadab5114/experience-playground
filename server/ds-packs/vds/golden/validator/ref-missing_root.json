@@ -1,0 +1,51 @@
+{
+  "name": "reference: missing_root",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "main",
+              "component": "Stack",
+              "children": [
+                "a"
+              ],
+              "direction": "column"
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "envelope",
+        "code": "missing-root"
+      },
+      {
+        "layer": "structure",
+        "code": "orphan",
+        "componentId": "main"
+      }
+    ],
+    "warnings": []
+  }
+}

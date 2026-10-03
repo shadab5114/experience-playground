@@ -1,0 +1,12 @@
+{
+  "name": "@experience-agent/postgres",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@experience-agent/contract": "*",
+    "@experience-agent/core": "*",
+    "pg": "^8.13.0"
+  }
+}

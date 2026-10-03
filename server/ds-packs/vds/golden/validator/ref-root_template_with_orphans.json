@@ -1,0 +1,61 @@
+{
+  "name": "reference: root_template_with_orphans",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": {
+                "path": "/items",
+                "componentId": "row"
+              },
+              "direction": "column"
+            },
+            {
+              "id": "row",
+              "component": "Text",
+              "children": {
+                "path": "name"
+              }
+            },
+            {
+              "id": "stray",
+              "component": "Button",
+              "children": "Stray"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "structure",
+        "code": "orphan",
+        "componentId": "stray"
+      }
+    ],
+    "warnings": [
+      {
+        "layer": "bindings",
+        "code": "unresolved-binding",
+        "componentId": "root"
+      }
+    ]
+  }
+}

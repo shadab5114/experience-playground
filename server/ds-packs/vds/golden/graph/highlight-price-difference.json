@@ -1,0 +1,249 @@
+{
+  "name": "highlight price difference",
+  "source": "src/mocks/scenarios/30-highlight-price-difference.json",
+  "compositionId": "basic-plan-tile",
+  "prompt": "The price difference isn't clear, highlight it",
+  "replies": [
+    {
+      "kind": "edit",
+      "components": [
+        "Badge",
+        "Text"
+      ],
+      "topic": "price",
+      "message": ""
+    },
+    {
+      "kind": "edit",
+      "a2ui": {
+        "meta": {
+          "provider": "mock",
+          "model": "experience-playground-fixture",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json",
+          "components": [
+            "TileContainer",
+            "Stack",
+            "Badge",
+            "Text"
+          ],
+          "generatedAt": "2026-10-01T00:00:00.000Z"
+        },
+        "a2ui": [
+          {
+            "version": "v0.9",
+            "createSurface": {
+              "surfaceId": "main",
+              "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+            }
+          },
+          {
+            "version": "v0.9",
+            "updateDataModel": {
+              "surfaceId": "main",
+              "path": "/",
+              "value": {
+                "plan": {
+                  "eyebrow": "MOBILE PLAN",
+                  "name": "Basic Plan",
+                  "price": "$30/mo"
+                }
+              }
+            }
+          },
+          {
+            "version": "v0.9",
+            "updateComponents": {
+              "surfaceId": "main",
+              "components": [
+                {
+                  "id": "root",
+                  "component": "TileContainer",
+                  "surface": "lightPrimary",
+                  "background": "lightSecondary",
+                  "padding": "6X",
+                  "borderRadius": "standard",
+                  "dropShadow": "subtle",
+                  "aspectRatio": "none",
+                  "width": "100%",
+                  "children": [
+                    "content"
+                  ]
+                },
+                {
+                  "id": "content",
+                  "component": "Stack",
+                  "direction": "column",
+                  "gap": "8px",
+                  "align": "start",
+                  "children": [
+                    "badge",
+                    "eyebrow",
+                    "title",
+                    "subtitle"
+                  ]
+                },
+                {
+                  "id": "badge",
+                  "component": "Badge",
+                  "children": "Save $10/mo",
+                  "backgroundColor": "green"
+                },
+                {
+                  "id": "eyebrow",
+                  "component": "Text",
+                  "kind": "body",
+                  "size": "small",
+                  "bold": true,
+                  "color": "var(--pdesign-color-element-secondary-onlightprimary)",
+                  "children": {
+                    "path": "/plan/eyebrow"
+                  }
+                },
+                {
+                  "id": "title",
+                  "component": "Text",
+                  "kind": "title",
+                  "size": "large",
+                  "bold": true,
+                  "children": {
+                    "path": "/plan/name"
+                  }
+                },
+                {
+                  "id": "subtitle",
+                  "component": "Text",
+                  "kind": "body",
+                  "size": "large",
+                  "children": "$30/mo — was $40/mo"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "summary": "Added a savings badge and the old price",
+      "message": "Done — added a “Save $10/mo” badge and showed the old price alongside the new one.",
+      "reason": null,
+      "alternatives": []
+    },
+    {
+      "meta": {
+        "provider": "mock",
+        "model": "experience-playground-fixture",
+        "catalogId": "https://pdesign.dev/catalog/v1/catalog.json",
+        "components": [
+          "TileContainer",
+          "Stack",
+          "Badge",
+          "Text"
+        ],
+        "generatedAt": "2026-10-01T00:00:00.000Z"
+      },
+      "a2ui": [
+        {
+          "version": "v0.9",
+          "createSurface": {
+            "surfaceId": "main",
+            "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateDataModel": {
+            "surfaceId": "main",
+            "path": "/",
+            "value": {
+              "plan": {
+                "eyebrow": "MOBILE PLAN",
+                "name": "Basic Plan",
+                "price": "$30/mo",
+                "savingsLabel": "Save $10/mo",
+                "priceNote": "$30/mo — was $40/mo"
+              }
+            }
+          }
+        },
+        {
+          "version": "v0.9",
+          "updateComponents": {
+            "surfaceId": "main",
+            "components": [
+              {
+                "id": "root",
+                "component": "TileContainer",
+                "surface": "lightPrimary",
+                "background": "lightSecondary",
+                "padding": "6X",
+                "borderRadius": "standard",
+                "dropShadow": "subtle",
+                "aspectRatio": "none",
+                "width": "100%",
+                "children": [
+                  "content"
+                ]
+              },
+              {
+                "id": "content",
+                "component": "Stack",
+                "direction": "column",
+                "gap": "8px",
+                "align": "start",
+                "children": [
+                  "badge",
+                  "eyebrow",
+                  "title",
+                  "subtitle"
+                ]
+              },
+              {
+                "id": "badge",
+                "component": "Badge",
+                "children": {
+                  "path": "/plan/savingsLabel"
+                },
+                "backgroundColor": "green"
+              },
+              {
+                "id": "eyebrow",
+                "component": "Text",
+                "kind": "body",
+                "size": "small",
+                "bold": true,
+                "color": "var(--pdesign-color-element-secondary-onlightprimary)",
+                "children": {
+                  "path": "/plan/eyebrow"
+                }
+              },
+              {
+                "id": "title",
+                "component": "Text",
+                "kind": "title",
+                "size": "large",
+                "bold": true,
+                "children": {
+                  "path": "/plan/name"
+                }
+              },
+              {
+                "id": "subtitle",
+                "component": "Text",
+                "kind": "body",
+                "size": "large",
+                "children": {
+                  "path": "/plan/priceNote"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "expect": {
+    "type": "result",
+    "summary": "Added a savings badge and the old price",
+    "message": "Done — added a “Save $10/mo” badge and showed the old price alongside the new one.",
+    "repairs": 1
+  },
+  "note": "The scenario's first draft puts literal prices in text (DS-105). The repair reply binds them to the data model."
+}

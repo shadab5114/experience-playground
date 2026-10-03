@@ -9,6 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     globals: true,
-    exclude: ['**/node_modules/**', '**/tests/e2e/**'],
+    // server/ is the backend, which has its own runner (bun test) and tooling.
+    exclude: ['**/node_modules/**', '**/tests/e2e/**', 'server/**'],
   },
 })

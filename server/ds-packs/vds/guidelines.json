@@ -1,0 +1,29 @@
+{
+  "note": "PLACEHOLDER. Stands in for the RAG guidelines endpoint until its request and response shape are known. Not design-team content.",
+  "entries": [
+    {
+      "sourceId": "stub-tilecontainer-background",
+      "component": "TileContainer",
+      "topic": "background",
+      "text": "Tile backgrounds use the approved surface tokens. Do not use saturated brand colors for large background areas."
+    },
+    {
+      "sourceId": "stub-badge-cap-color",
+      "component": "Badge",
+      "topic": "backgroundColor",
+      "text": "Cap badges use only the approved VDS palette tokens: red, yellow, green, orange, blue, neonYellow, grayHighContrast, grayLowContrast, black, white."
+    },
+    {
+      "sourceId": "stub-badge-size",
+      "component": "Badge",
+      "topic": "size",
+      "text": "The compact badge size is the standard for plan tiles. Keep badges short, one to three words."
+    },
+    {
+      "sourceId": "stub-text-price",
+      "component": "Text",
+      "topic": "price",
+      "text": "Show a price difference as the new price next to the old price, with the saving stated in a badge."
+    }
+  ]
+}

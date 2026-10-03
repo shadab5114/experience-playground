@@ -1,0 +1,97 @@
+{
+  "name": "seeded page: aal-mock",
+  "kind": "page",
+  "document": {
+    "meta": {
+      "provider": "mock",
+      "model": "experience-playground-fixture",
+      "catalogId": "https://pdesign.dev/catalog/v1/catalog.json",
+      "components": [
+        "Stack",
+        "Text",
+        "Slot"
+      ],
+      "generatedAt": "2026-10-01T00:00:00.000Z"
+    },
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "main",
+          "path": "/",
+          "value": {
+            "aal": {
+              "heading": "Add a Line",
+              "intro": "Pick the plan for the new line on your account."
+            }
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "20px",
+              "padding": "24px",
+              "width": "100%",
+              "children": [
+                "heading",
+                "intro",
+                "plan-slot",
+                "footer-note"
+              ]
+            },
+            {
+              "id": "heading",
+              "component": "Text",
+              "kind": "title",
+              "size": "xlarge",
+              "bold": true,
+              "children": {
+                "path": "/aal/heading"
+              }
+            },
+            {
+              "id": "intro",
+              "component": "Text",
+              "kind": "body",
+              "size": "medium",
+              "children": {
+                "path": "/aal/intro"
+              }
+            },
+            {
+              "id": "plan-slot",
+              "component": "Slot",
+              "slotId": "plan-summary"
+            },
+            {
+              "id": "footer-note",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "color": "var(--pdesign-color-element-secondary-onlightprimary)",
+              "children": "Mock AAL page for the Experience Playground's Impacts view."
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [],
+    "warnings": []
+  }
+}

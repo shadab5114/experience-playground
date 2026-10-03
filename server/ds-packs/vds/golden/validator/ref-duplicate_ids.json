@@ -1,0 +1,62 @@
+{
+  "name": "reference: duplicate_ids",
+  "kind": "composition",
+  "source": "tests/fixtures/graph_check (ported: catalogId, Column/Row/List to Stack)",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "children": [
+                "a"
+              ],
+              "direction": "column"
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A"
+            },
+            {
+              "id": "a",
+              "component": "Button",
+              "children": "A again"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "a"
+      },
+      {
+        "layer": "rules",
+        "code": "DS-101",
+        "componentId": "a"
+      },
+      {
+        "layer": "structure",
+        "code": "duplicate-id",
+        "componentId": "a"
+      }
+    ],
+    "warnings": []
+  }
+}

@@ -10,7 +10,15 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "server:dev": "node --env-file=server/.env --import tsx --watch server/apps/service/src/index.ts",
+    "server:start": "node --env-file=server/.env --import tsx server/apps/service/src/index.ts",
+    "server:typecheck": "tsc -p server/tsconfig.json --noEmit",
+    "server:test": "vitest run --config server/vitest.config.ts",
+    "db:up": "docker compose -f server/docker-compose.yml up -d --wait",
+    "db:down": "docker compose -f server/docker-compose.yml down",
+    "db:migrate": "node --env-file=server/.env --import tsx server/adapters/postgres/cli.ts migrate",
+    "db:seed": "node --env-file=server/.env --import tsx server/adapters/postgres/cli.ts seed"
   },
   "dependencies": {
     "@shadab5114/pdesign-tokens": "^1.0.0-alpha.2",
@@ -25,14 +33,22 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",
+    "@types/pg": "^8.11.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/ui": "^5.0.3",
     "jsdom": "^30.1.1",
     "oxlint": "^1.81.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vitest": "^5.0.3"
-  }
+  },
+  "workspaces": [
+    "server/packages/*",
+    "server/adapters/*",
+    "server/apps/*",
+    "server/ds-packs/*"
+  ]
 }

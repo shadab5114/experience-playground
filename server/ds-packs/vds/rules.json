@@ -1,0 +1,22 @@
+{
+  "note": "DS-1xx rules are placeholders from hard-rules.md until the design team supplies the real list (open decision D5).",
+  "placeholderRules": [
+    "DS-101",
+    "DS-102",
+    "DS-103",
+    "DS-104",
+    "DS-105"
+  ],
+  "capColors": [
+    "red",
+    "yellow",
+    "green",
+    "orange",
+    "blue",
+    "neonYellow",
+    "grayHighContrast",
+    "grayLowContrast",
+    "black",
+    "white"
+  ]
+}

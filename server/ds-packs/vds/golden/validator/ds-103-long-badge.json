@@ -1,0 +1,46 @@
+{
+  "name": "DS-103: badge text too long",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "b"
+              ]
+            },
+            {
+              "id": "b",
+              "component": "Badge",
+              "children": "This badge text is far too long"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "rules",
+        "code": "DS-103",
+        "componentId": "b"
+      }
+    ],
+    "warnings": []
+  }
+}

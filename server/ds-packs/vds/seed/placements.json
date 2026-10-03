@@ -1,0 +1,21 @@
+[
+  {
+    "compositionId": "basic-plan-tile",
+    "pageTemplateId": "pdp-mock",
+    "slotId": "plan-summary",
+    "position": 0
+  },
+  {
+    "compositionId": "basic-plan-tile",
+    "pageTemplateId": "aal-mock",
+    "slotId": "plan-summary",
+    "position": 1
+  },
+  {
+    "compositionId": "basic-plan-tile",
+    "pageTemplateId": "order-summary-mock",
+    "slotId": "plan-summary",
+    "variant": "compact",
+    "position": 2
+  }
+]

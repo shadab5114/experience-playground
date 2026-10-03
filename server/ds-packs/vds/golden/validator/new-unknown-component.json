@@ -1,0 +1,45 @@
+{
+  "name": "component not in the catalog and not an extra",
+  "kind": "composition",
+  "document": {
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "Stack",
+              "direction": "column",
+              "children": [
+                "d"
+              ]
+            },
+            {
+              "id": "d",
+              "component": "Divider"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "expect": {
+    "errors": [
+      {
+        "layer": "catalog",
+        "code": "unknown-component",
+        "componentId": "d"
+      }
+    ],
+    "warnings": []
+  }
+}
