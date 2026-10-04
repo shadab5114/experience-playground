@@ -21,5 +21,6 @@ export function withListCache(
     },
     get: (id) => store.get(id),
     placements: (id) => store.placements(id),
+    search: (text) => store.search(text),
   };
 }

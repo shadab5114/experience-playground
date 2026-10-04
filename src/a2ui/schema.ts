@@ -59,12 +59,36 @@ export function isComponentKnown(componentType: string): boolean {
   return componentType in components
 }
 
-export function isDynamicStringRef(schema: JsonSchemaLike | undefined): boolean {
-  return schema?.$ref === '#/$defs/DynamicString'
+/**
+ * Every `Dynamic*` $def in the catalog is the same shape: a literal of that
+ * type, OR a `DataBinding` (`{ path }`), OR a `FunctionCall`. So a binding
+ * is resolvable against any of them, not just `DynamicString` — a
+ * `DynamicBoolean` prop like `Modal.opened` or `Toggle.checked` binds the
+ * same way.
+ */
+const dynamicRefs = new Set([
+  '#/$defs/DynamicString',
+  '#/$defs/DynamicNumber',
+  '#/$defs/DynamicBoolean',
+  '#/$defs/DynamicValue',
+  '#/$defs/DynamicStringList',
+])
+
+export function isDynamicRef(schema: JsonSchemaLike | undefined): boolean {
+  return typeof schema?.$ref === 'string' && dynamicRefs.has(schema.$ref)
 }
 
 export function isChildListRef(schema: JsonSchemaLike | undefined): boolean {
   return schema?.$ref === '#/$defs/ChildList'
+}
+
+/**
+ * An icon slot. The catalog declares these as a plain kebab-case name from
+ * the `IconName` enum (JSON can't carry a React element or a render
+ * function), so the renderer resolves the name to a real icon component.
+ */
+export function isIconNameRef(schema: JsonSchemaLike | undefined): boolean {
+  return schema?.$ref === '#/$defs/IconName'
 }
 
 export { catalog }

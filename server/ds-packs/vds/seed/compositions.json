@@ -115,7 +115,9 @@
           }
         }
       ]
-    }
+    },
+    "family": "Basic Plan Tile",
+    "description": "Mobile version of the basic plan: badge on top, eyebrow, plan name and price. The default for a basic plan."
   },
   {
     "id": "home-plan-tile",
@@ -232,7 +234,9 @@
           }
         }
       ]
-    }
+    },
+    "family": "Home Plan Tile",
+    "description": "Home version of the plan tile with the same structure as the basic tile, for the home plan."
   },
   {
     "id": "order-summary-tile",
@@ -348,6 +352,8 @@
           }
         }
       ]
-    }
+    },
+    "family": "Order Summary Tile",
+    "description": "Summary tile for the order summary page: plan name and price, without a badge."
   }
 ]

@@ -15,6 +15,8 @@ const PackFile = z.object({
 const SeedComposition = z.object({
   id: z.string(),
   name: z.string(),
+  family: z.string().min(1),
+  description: z.string().min(1),
   type: z.string(),
   tags: z.array(z.string()),
   a2ui: A2UIDocumentSchema,
@@ -89,21 +91,25 @@ export async function seedPack(pool: pg.Pool, packDir: string): Promise<SeedCoun
 
     for (const c of compositions) {
       await client.query(
-        `insert into compositions (id, ds_pack, name, type, tags, components_used, a2ui_version, a2ui)
-         values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+        `insert into compositions (id, ds_pack, name, family, description, type, tags, components_used, a2ui_version, a2ui)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
          on conflict (id) do update set
-           ds_pack = excluded.ds_pack, name = excluded.name, type = excluded.type,
+           ds_pack = excluded.ds_pack, name = excluded.name, family = excluded.family,
+           description = excluded.description, type = excluded.type,
            tags = excluded.tags, components_used = excluded.components_used,
            a2ui_version = excluded.a2ui_version, a2ui = excluded.a2ui, updated_at = now()
-         where (compositions.ds_pack, compositions.name, compositions.type, compositions.tags,
-                compositions.components_used, compositions.a2ui_version, compositions.a2ui)
+         where (compositions.ds_pack, compositions.name, compositions.family, compositions.description,
+                compositions.type, compositions.tags, compositions.components_used,
+                compositions.a2ui_version, compositions.a2ui)
                is distinct from
-               (excluded.ds_pack, excluded.name, excluded.type, excluded.tags,
-                excluded.components_used, excluded.a2ui_version, excluded.a2ui)`,
+               (excluded.ds_pack, excluded.name, excluded.family, excluded.description,
+                excluded.type, excluded.tags, excluded.components_used, excluded.a2ui_version, excluded.a2ui)`,
         [
           c.id,
           pack.name,
           c.name,
+          c.family,
+          c.description,
           c.type,
           c.tags,
           c.a2ui.meta?.components ?? [],

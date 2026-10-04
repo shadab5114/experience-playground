@@ -5,7 +5,7 @@ import { cors } from "hono/cors";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { AgentRequest } from "@experience-agent/contract";
-import { runAgent, type AgentEngine, type CompositionStore, type Logger } from "@experience-agent/core";
+import { runAgent, type AgentEngine, type CompositionStore, type Logger, type ThreadLock } from "@experience-agent/core";
 
 export interface AppDeps {
   // Browser origins allowed to call the API. Requests from other origins get no CORS headers.
@@ -14,6 +14,8 @@ export interface AppDeps {
   pingDatabase: () => Promise<void>;
   // The flow that answers prompts. Built by wire(); tests pass a scripted one.
   engine: AgentEngine;
+  // One run per thread: a prompt on a busy thread gets 409.
+  threadLock: ThreadLock;
   log: Logger;
 }
 
@@ -70,15 +72,30 @@ export function createApp(deps: AppDeps): Hono {
     const body = AgentRequest.safeParse(await c.req.json().catch(() => undefined));
     if (!body.success) return c.json({ error: "Invalid request", issues: body.error.issues }, 400);
 
+    // The lock is taken before the stream starts, so a busy thread is a plain 409.
+    let lock: Awaited<ReturnType<ThreadLock["tryAcquire"]>>;
+    try {
+      lock = await deps.threadLock.tryAcquire(threadId.data);
+    } catch {
+      deps.log.error("thread-lock-unavailable", { threadId: threadId.data });
+      return c.json({ error: "The agent is busy. Try again shortly." }, 503);
+    }
+    if (!lock) return c.json({ error: "A prompt is already running on this thread." }, 409);
+    const held = lock;
+
     return streamSSE(c, async (stream) => {
-      const events = runAgent(body.data, {
-        threadId: threadId.data,
-        signal: c.req.raw.signal,
-        engine: deps.engine,
-        log: deps.log,
-      });
-      for await (const event of events) {
-        await stream.writeSSE({ event: event.type, data: JSON.stringify(event) });
+      try {
+        const events = runAgent(body.data, {
+          threadId: threadId.data,
+          signal: c.req.raw.signal,
+          engine: deps.engine,
+          log: deps.log,
+        });
+        for await (const event of events) {
+          await stream.writeSSE({ event: event.type, data: JSON.stringify(event) });
+        }
+      } finally {
+        await held.release();
       }
     });
   });

@@ -19,12 +19,13 @@ const GuidelineFile = z.object({
 export function createFileGuidelineSource(path: string): GuidelineSource {
   const file = GuidelineFile.parse(JSON.parse(readFileSync(path, "utf8")));
   return {
-    async search({ component, topic }) {
+    // A stub cannot read a question, so it returns the passages for the components asked about.
+    async search({ components }) {
       return file.entries
-        .filter((e) => e.component === component)
-        // An entry with no topic applies to the whole component, so it always matches.
-        .filter((e) => !topic || !e.topic || e.topic === topic)
+        .filter((e) => components.length === 0 || components.includes(e.component))
         .map(({ sourceId, text }) => ({ sourceId, text }));
     },
   };
 }
+
+export { createRagGuidelineSource, RagError, type RagGuidelineOptions } from "./rag";

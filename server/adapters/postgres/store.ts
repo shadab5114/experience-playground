@@ -1,12 +1,16 @@
 // CompositionStore over Postgres. All SQL for reads lives here.
 import type pg from "pg";
-import type { CompositionStore } from "@experience-agent/core";
+import type { CompositionCandidate, CompositionStore } from "@experience-agent/core";
 import type { CompositionDetail, CompositionSummary, PlacementView, A2UIDocument } from "@experience-agent/contract";
 
 // Escape LIKE wildcards so a search for "50%" matches literally.
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
 }
+
+// Words that carry a letter or digit. Punctuation such as "-" or "–" is ignored.
+const words = (text: string): string[] =>
+  text.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).slice(0, 8);
 
 export class PostgresCompositionStore implements CompositionStore {
   constructor(
@@ -25,6 +29,39 @@ export class PostgresCompositionStore implements CompositionStore {
       [this.dsPack, filter.type ?? null, q],
     );
     return rows.map((r) => ({ compositionId: r.id, name: r.name, type: r.type, tags: r.tags }));
+  }
+
+  // Family and name first, because they name the composition. Descriptions are only
+  // searched when that finds nothing, since a description often mentions other tiles.
+  async search(text: string): Promise<CompositionCandidate[]> {
+    const terms = words(text);
+    if (terms.length === 0) return [];
+    const byNameOrFamily = await this.searchFields(terms, "family || ' ' || name");
+    if (byNameOrFamily.length > 0) return byNameOrFamily;
+    return this.searchFields(terms, "family || ' ' || name || ' ' || coalesce(description, '')");
+  }
+
+  private async searchFields(terms: string[], fields: string): Promise<CompositionCandidate[]> {
+    const clauses = terms.map((_, i) => `(${fields}) ilike $${i + 2}`).join(" and ");
+    const { rows } = await this.pool.query<{
+      id: string;
+      name: string;
+      family: string | null;
+      description: string | null;
+      type: string;
+    }>(
+      `select id, name, family, description, type from compositions
+       where ds_pack = $1 and ${clauses}
+       order by name`,
+      [this.dsPack, ...terms.map((t) => `%${escapeLike(t)}%`)],
+    );
+    return rows.map((r) => ({
+      compositionId: r.id,
+      name: r.name,
+      family: r.family ?? "",
+      description: r.description ?? "",
+      type: r.type,
+    }));
   }
 
   async get(compositionId: string): Promise<CompositionDetail | null> {

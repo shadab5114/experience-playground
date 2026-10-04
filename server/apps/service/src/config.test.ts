@@ -16,6 +16,7 @@ describe("loadConfig", () => {
       ANTHROPIC_API_KEY: "sk-ant-config-test-secret",
       MODEL_ID: "test-model",
       MODEL_TIMEOUT_MS: 60_000,
+      RUN_LOCK_POOL_SIZE: 10,
       DS_PACK: "vds",
     });
   });

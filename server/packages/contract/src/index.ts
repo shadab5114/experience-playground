@@ -33,12 +33,21 @@ export type PlacementView = z.infer<typeof PlacementView>;
 
 // The thread id is not part of the body. It travels in the URL path
 // (POST /v1/threads/:threadId/prompts) and as the first argument to sendPrompt.
-export const AgentRequest = z.object({
-  experienceId: z.string().min(1),
-  compositionId: z.string().min(1),
-  currentA2ui: A2UIDocumentSchema,
-  prompt: z.string().min(1),
-});
+// A request with no composition is a chat-first start: the designer types before
+// choosing a tile. The composition fields go together, so one never comes without the other.
+export const AgentRequest = z
+  .object({
+    experienceId: z.string().min(1).optional(),
+    compositionId: z.string().min(1).optional(),
+    currentA2ui: A2UIDocumentSchema.optional(),
+    prompt: z.string().min(1),
+  })
+  .refine((r) => (r.compositionId === undefined) === (r.currentA2ui === undefined), {
+    message: "compositionId and currentA2ui must be sent together",
+  })
+  .refine((r) => r.experienceId === undefined || r.compositionId !== undefined, {
+    message: "experienceId needs a compositionId",
+  });
 export type AgentRequest = z.infer<typeof AgentRequest>;
 
 export const AgentEvent = z.discriminatedUnion("type", [
@@ -68,6 +77,14 @@ export const AgentEvent = z.discriminatedUnion("type", [
     type: z.literal("scope"),
     message: z.string(),
   }),
+  // The designer asked for another composition ("bring me Basic Plan Tile - Mobile").
+  // The playground discards unsaved work and opens the target. Ends the stream.
+  z.object({
+    type: z.literal("switch"),
+    compositionId: z.string().min(1),
+    name: z.string(),
+    message: z.string(),
+  }),
   z.object({
     type: z.literal("error"),
     message: z.string(),
@@ -77,4 +94,4 @@ export const AgentEvent = z.discriminatedUnion("type", [
 export type AgentEvent = z.infer<typeof AgentEvent>;
 
 // Every stream ends with exactly one of these.
-export const TERMINAL_EVENT_TYPES = ["result", "answer", "refusal", "scope", "error"] as const;
+export const TERMINAL_EVENT_TYPES = ["result", "answer", "refusal", "scope", "switch", "error"] as const;

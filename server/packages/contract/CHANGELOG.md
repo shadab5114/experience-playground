@@ -21,6 +21,16 @@ wire shapes is listed here, with the reason.
   sides share one definition. Components are loose: `id` and `component` are
   required, other props are allowed.
 
+- `AgentEvent` has a `switch` event (`compositionId`, `name`, `message`), a
+  terminal event. It is sent when a designer asks in the thread for another
+  composition. The playground discards unsaved work and opens the target.
+  Added to `TERMINAL_EVENT_TYPES`.
+
+- `AgentRequest.experienceId`, `compositionId` and `currentA2ui` are optional, for
+  a chat-first start where the designer types before choosing a tile. They are sent
+  together: a request has both composition fields or neither. Requests that were
+  valid before are still valid.
+
 ### Notes
 - The playground's `src/a2ui/types.ts` re-exports these types, so renderer
   imports did not change.

@@ -16,6 +16,11 @@ export interface PackSettings {
   guidelineStubFile: string;
 }
 
+// Markdown comments (such as the PLACEHOLDER marker) are for people, not the model.
+function stripComments(markdown: string): string {
+  return markdown.replace(/<!--[\s\S]*?-->/g, "").trim();
+}
+
 export function readPackSettings(): PackSettings {
   const pack = JSON.parse(readFileSync(join(HERE, "pack.json"), "utf8")) as {
     catalogId: string;
@@ -26,7 +31,7 @@ export function readPackSettings(): PackSettings {
     catalogId: pack.catalogId,
     guidelineCollection: pack.guidelines.collection,
     compositionTypes: pack.compositionTypes,
-    systemPrompt: readFileSync(join(HERE, "prompts/system.md"), "utf8"),
+    systemPrompt: stripComments(readFileSync(join(HERE, "prompts/system.md"), "utf8")),
     guidelineStubFile: join(HERE, "guidelines.json"),
   };
 }

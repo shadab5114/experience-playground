@@ -3,12 +3,11 @@
 // repair; gather, validate and respond are code. Nothing here knows about
 // LangGraph: the graph adapter wraps these functions.
 import { z } from "zod";
-import type { A2UIDocument, AgentEvent } from "@experience-agent/contract";
-import { A2UIDocumentSchema } from "@experience-agent/contract";
+import type { A2UIDocument, AgentEvent, AgentRequest } from "@experience-agent/contract";
 import { LABELS, type StepId } from "../graph/labels";
 import type { CatalogEntry, CatalogSource, ChatMessage, CompositionStore, GuidelineSource, Logger, ModelClient } from "../ports";
 import { blocking, validate as validateDocument, warnings } from "../validator";
-import { GenerateSchema, RouteSchema } from "./schemas";
+import { GenerateSchema, ModelDocumentSchema, PickSchema, RouteSchema } from "./schemas";
 import type { AgentState, GatheredContext } from "./state";
 
 export interface PackPrompts {
@@ -30,6 +29,7 @@ export type NodeFn = (state: AgentState, emit: Emit) => Promise<Partial<AgentSta
 
 export interface Nodes {
   route: NodeFn;
+  find: NodeFn;
   gather: NodeFn;
   generate: NodeFn;
   validate: NodeFn;
@@ -38,6 +38,15 @@ export interface Nodes {
 }
 
 // Component names in a document, from its updateComponents messages.
+// The open composition, for the nodes that work on it. Only edit and question routes get
+// here, and the route node sends everything else away when no composition is open.
+function openComposition(request: AgentRequest): { compositionId: string; currentA2ui: A2UIDocument } {
+  if (request.compositionId === undefined || request.currentA2ui === undefined) {
+    throw new Error("no composition is open for this request");
+  }
+  return { compositionId: request.compositionId, currentA2ui: request.currentA2ui };
+}
+
 export function documentComponents(doc: A2UIDocument): string[] {
   const names = new Set<string>();
   for (const msg of doc.a2ui) {
@@ -63,15 +72,70 @@ function withStatus(stepId: StepId, fn: NodeFn): NodeFn {
   };
 }
 
+// Filler words a designer uses around a composition name ("show me the home plan").
+const FILLER = new Set(["show", "me", "bring", "open", "the", "a", "an", "to", "please", "switch", "go", "back", "on", "of", "up", "can", "you", "i", "want", "see", "view"]);
+
+export function targetWordsFromPrompt(prompt: string): string {
+  return prompt
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w !== "" && !FILLER.has(w))
+    .join(" ");
+}
+
+// Used only when the route wrote no questions of its own.
+export function fallbackGuidelineQuery(components: string[], topic: string | null): string {
+  const subject = components.length > 0 ? components.join(" and ") : "this component";
+  return `What is allowed for ${subject}${topic ? ` (${topic})` : ""} on a plan tile?`;
+}
+
 export function makeNodes(deps: AgentDeps): Nodes {
   const system = deps.pack.systemPrompt;
 
   const route: NodeFn = async (state) => {
     const { request } = state;
+    if (request.compositionId === undefined || request.currentA2ui === undefined) {
+      // Chat-first: nothing is open yet. Only a request to open a composition makes sense here.
+      const out = await deps.model.structured({
+        system,
+        messages: [
+          ...state.messages,
+          {
+            role: "user",
+            content: [
+              "No composition is open yet. The designer types a request before choosing a tile.",
+              `Known composition types: ${deps.pack.compositionTypes.join(", ")}.`,
+              `Request: ${request.prompt}`,
+              "Classify it. switch: asks to open or bring up a composition or variant by name, such as \"show me home plan\"; put only the designer's own words for it in targetText. unsupported: anything else.",
+            ].join("\n"),
+          },
+        ],
+        schema: RouteSchema,
+      });
+      if (out.kind === "switch") return { route: out };
+      return {
+        route: {
+          kind: "unsupported",
+          components: [],
+          topic: null,
+          message: 'Tell me which composition to open first, for example "show me home plan".',
+          guidelineQueries: [],
+          targetText: null,
+        },
+      };
+    }
+
     const composition = await deps.compositions.get(request.compositionId);
     if (!composition) {
       return {
-        route: { kind: "unsupported", components: [], topic: null, message: "That composition isn't available in this workspace." },
+        route: {
+          kind: "unsupported",
+          components: [],
+          topic: null,
+          message: "That composition isn't available in this workspace.",
+          guidelineQueries: [],
+          targetText: null,
+        },
       };
     }
     const instructions = [
@@ -79,8 +143,9 @@ export function makeNodes(deps: AgentDeps): Nodes {
       `Known composition types: ${deps.pack.compositionTypes.join(", ")}.`,
       `Components in it: ${documentComponents(request.currentA2ui).join(", ") || "(none)"}.`,
       `Request: ${request.prompt}`,
-      "Classify the request. edit: change this composition. ask: a question about it or its variants. scope: about a different composition or page. unsupported: not a design change to this composition.",
+      "Classify the request. edit: a request to change this composition, even when it is phrased as a statement such as \"change X to Y\". ask: only a question, such as one with \"what\", \"which\", \"how\" or a question mark, about this composition or its variants. switch: asks to open or bring up a different composition or variant by name, such as \"bring me Basic Plan Tile - Mobile\"; put in targetText only the words the designer used for it, with no word added (for \"show me home plan\", targetText is \"home plan\"). scope: about a page or a part of a page, such as the PDP header. unsupported: not a design change to this composition.",
       "Name the components the request is about and the topic (for example backgroundColor). Give a plain sentence in message for scope and unsupported.",
+      "For an edit, write guidelineQueries: one to three questions the generator must have answered before making this change. Each names the component, the property and the value asked for, and asks what is allowed. Example for 'change cap color or badge to red': 'Which background colors are approved for a Badge on a plan tile, and is red one of them?'. Write questions, never the request's own words.",
     ].join("\n");
     const out = await deps.model.structured({
       system,
@@ -90,9 +155,48 @@ export function makeNodes(deps: AgentDeps): Nodes {
     return { route: out };
   };
 
+  // Finds the composition a switch request names. One match is taken as is; several go
+  // to the model, which may pick only from those matches.
+  const find: NodeFn = async (state) => {
+    const r = required(state.route, "route");
+    const text = (r.targetText ?? "").trim();
+    if (text === "") return { target: null, reply: "Which composition would you like to open?" };
+
+    // The name the route extracted first. If it matches nothing, the designer's own
+    // words from the prompt (without filler such as "show me") are the second try.
+    let matches = await deps.compositions.search(text);
+    if (matches.length === 0) {
+      const fromPrompt = targetWordsFromPrompt(state.request.prompt);
+      if (fromPrompt !== "" && fromPrompt !== text) matches = await deps.compositions.search(fromPrompt);
+    }
+    if (matches.length === 0) {
+      return { target: null, reply: `I couldn't find a composition called "${text}" in this design system.` };
+    }
+    if (matches.length === 1) return { target: matches[0] ?? null };
+
+    const pick = await deps.model.structured({
+      system,
+      messages: [
+        ...state.messages,
+        {
+          role: "user",
+          content: [
+            `Request: ${state.request.prompt}`,
+            "Several compositions match. Choose the one the designer means, using only these ids:",
+            ...matches.map((m) => `- ${m.compositionId}: ${m.name} (family ${m.family}). ${m.description}`),
+            "Return compositionId as one of these ids, or null with a short question in message if none is clearly right.",
+          ].join("\n"),
+        },
+      ],
+      schema: PickSchema,
+    });
+    const chosen = matches.find((m) => m.compositionId === pick.compositionId);
+    return chosen ? { target: chosen } : { target: null, reply: pick.message };
+  };
+
   const gather: NodeFn = async (state) => {
     const r = required(state.route, "route");
-    const names = unique([...r.components, ...documentComponents(state.request.currentA2ui)]);
+    const names = unique([...r.components, ...documentComponents(openComposition(state.request).currentA2ui)]);
     const catalog = names.flatMap((name): CatalogEntry[] => {
       const entry = deps.catalog.entry(name);
       return entry ? [entry] : [];
@@ -102,8 +206,21 @@ export function makeNodes(deps: AgentDeps): Nodes {
     const guidelines: GatheredContext["guidelines"] = [];
     if (r.kind === "edit") {
       const seen = new Set<string>();
-      for (const component of r.components) {
-        const hits = await deps.guidelines.search({ component, ...(r.topic ? { topic: r.topic } : {}) });
+      // The route's questions are what gather asks. The generic question is only a fallback.
+      const queries = r.guidelineQueries.length > 0 ? r.guidelineQueries : [fallbackGuidelineQuery(r.components, r.topic)];
+      for (const [index, query] of queries.entries()) {
+        // A failed lookup costs the advice, not the run: the validator still enforces the must-never rules.
+        let hits: { sourceId: string; text: string }[];
+        try {
+          hits = await deps.guidelines.search({ query, components: r.components });
+        } catch (err) {
+          deps.log.warn("guidelines-unavailable", {
+            query: index,
+            compositionId: state.request.compositionId,
+            reason: err instanceof Error ? err.name : "unknown",
+          });
+          hits = [];
+        }
         for (const hit of hits) {
           if (seen.has(hit.sourceId)) continue;
           seen.add(hit.sourceId);
@@ -114,7 +231,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
 
     let variants: GatheredContext["variants"] = [];
     if (r.kind === "ask") {
-      const composition = await deps.compositions.get(state.request.compositionId);
+      const composition = await deps.compositions.get(openComposition(state.request).compositionId);
       if (composition) variants = await deps.compositions.list({ type: composition.type });
     }
 
@@ -127,7 +244,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
     const instructions = [
       `Request: ${state.request.prompt}`,
       "Current A2UI document. Return the full new document when you edit it:",
-      JSON.stringify(state.request.currentA2ui),
+      JSON.stringify(openComposition(state.request).currentA2ui),
       "Catalog for the components involved (JSON Schema for each):",
       JSON.stringify(components),
       "Guidelines (cite the sourceId in a refusal):",
@@ -156,7 +273,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
     const findings = validateDocument(state.draft, {
       kind: "composition",
       catalog: deps.catalog,
-      current: state.request.currentA2ui,
+      current: openComposition(state.request).currentA2ui,
     });
     for (const w of warnings(findings)) {
       deps.log.warn("validation-warning", {
@@ -182,7 +299,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
     const fixed = await deps.model.structured({
       system,
       messages: [...state.messages, { role: "user", content: instructions }],
-      schema: A2UIDocumentSchema,
+      schema: ModelDocumentSchema,
     });
     return { draft: fixed, repairAttempts: state.repairAttempts + 1 };
   };
@@ -198,6 +315,20 @@ export function makeNodes(deps: AgentDeps): Nodes {
     } else if (!r) {
       emit({ type: "error", message: "The request could not be classified.", retryable: true });
       memory = "Error: the request could not be classified.";
+    } else if (r.kind === "switch") {
+      if (state.target && state.target.compositionId !== request.compositionId) {
+        const message = `Opening ${state.target.name}. Unsaved work in this task will be discarded.`;
+        emit({ type: "switch", compositionId: state.target.compositionId, name: state.target.name, message });
+        memory = `Switched to ${state.target.name}.`;
+      } else if (state.target) {
+        const text = `${state.target.name} is already open.`;
+        emit({ type: "answer", text });
+        memory = text;
+      } else {
+        const text = state.reply ?? "I couldn't find that composition.";
+        emit({ type: "answer", text });
+        memory = text;
+      }
     } else if (r.kind === "scope") {
       emit({ type: "scope", message: r.message });
       memory = r.message;
@@ -235,6 +366,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
 
   return {
     route: withStatus("route", route),
+    find: withStatus("find", find),
     gather: withStatus("gather", gather),
     generate: withStatus("generate", generate),
     validate: withStatus("validate", validate),

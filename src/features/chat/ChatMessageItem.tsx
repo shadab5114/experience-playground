@@ -1,4 +1,5 @@
 import type { ChatMessage } from '../../types/domain'
+import { useTaskStore } from '../task/taskStore'
 import styles from './ChatMessageItem.module.css'
 
 export function ChatMessageItem({ message, onChip }: { message: ChatMessage; onChip: (text: string) => void }) {
@@ -62,6 +63,21 @@ export function ChatMessageItem({ message, onChip }: { message: ChatMessage; onC
 
     case 'system':
       return <div className={styles.system}>{message.text}</div>
+
+    case 'switch':
+      return (
+        <div className={`${styles.card} ${styles.cardScope}`}>
+          <div>{message.text}</div>
+          <div className={styles.chips}>
+            <button type="button" className={styles.chip} onClick={() => void useTaskStore.getState().switchTo(message.compositionId)}>
+              Open {message.name}
+            </button>
+            <button type="button" className={styles.chip} onClick={() => useTaskStore.getState().dismissMessage(message.id)}>
+              Stay here
+            </button>
+          </div>
+        </div>
+      )
 
     case 'error':
       return (

@@ -48,6 +48,15 @@ export class MockAgentClient implements AgentClient {
   }
 
   async *sendPrompt(_threadId: string, req: AgentRequest, signal?: AbortSignal): AsyncIterable<AgentEvent> {
+    // Mock mode has no search, so a chat-first request can only be answered by asking for a pick.
+    if (req.experienceId === undefined || req.currentA2ui === undefined) {
+      yield {
+        type: 'refusal',
+        reason: 'Pick an experience first, then describe the change. Chat-first search needs the backend (remote mode).',
+        alternatives: [],
+      }
+      return
+    }
     const scenario = findMatchingScenario(this.scenarios, req.experienceId, req.prompt)
 
     if (!scenario) {

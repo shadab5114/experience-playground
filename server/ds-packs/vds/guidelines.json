@@ -1,5 +1,5 @@
 {
-  "note": "PLACEHOLDER. Stands in for the RAG guidelines endpoint until its request and response shape are known. Not design-team content.",
+  "note": "PLACEHOLDER: these guideline passages were written for development. They are not design-team content and must be replaced by the RAG endpoint (or the reviewed list) before any real use.",
   "entries": [
     {
       "sourceId": "stub-tilecontainer-background",

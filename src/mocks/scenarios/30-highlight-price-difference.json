@@ -1,22 +1,64 @@
 {
   "id": "highlight-price-difference",
-  "experienceIds": ["basic-plan-mobile"],
-  "match": ["price difference", "isn'?t clear", "highlight.*price", "hard to (see|tell).*(price|savings)"],
+  "experienceIds": [
+    "basic-plan-mobile"
+  ],
+  "match": [
+    "price difference",
+    "isn'?t clear",
+    "highlight.*price",
+    "hard to (see|tell).*(price|savings)"
+  ],
   "steps": [
-    { "label": "Reading the tile structure", "ms": 500 },
-    { "label": "Checking VDS patterns", "ms": 600 },
-    { "label": "Applying change", "ms": 550 },
-    { "label": "Validating against brand rules", "ms": 450 }
+    {
+      "label": "Reading the tile structure",
+      "ms": 500
+    },
+    {
+      "label": "Checking VDS patterns",
+      "ms": 600
+    },
+    {
+      "label": "Applying change",
+      "ms": 550
+    },
+    {
+      "label": "Validating against brand rules",
+      "ms": 450
+    }
   ],
   "outcome": {
     "kind": "edit",
     "patch": [
       {
         "op": "add",
-        "path": "/components/badge",
-        "value": { "id": "badge", "component": "Badge", "children": "Save $10/mo", "backgroundColor": "green" }
+        "path": "/dataModel/plan/savingsLabel",
+        "value": "Save $10/mo"
       },
-      { "op": "add", "path": "/components/subtitle/children", "value": "$30/mo — was $40/mo" }
+      {
+        "op": "add",
+        "path": "/dataModel/plan/priceNote",
+        "value": "$30/mo — was $40/mo"
+      },
+      {
+        "op": "add",
+        "path": "/components/badge",
+        "value": {
+          "id": "badge",
+          "component": "Badge",
+          "children": {
+            "path": "/plan/savingsLabel"
+          },
+          "backgroundColor": "green"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/components/subtitle/children",
+        "value": {
+          "path": "/plan/priceNote"
+        }
+      }
     ],
     "summary": "Added a savings badge and the old price",
     "message": "Done — added a “Save $10/mo” badge and showed the old price alongside the new one."

@@ -5,8 +5,13 @@ import type { AgentState } from "./state";
 // After this many repairs a draft that still fails validation becomes an error.
 export const MAX_REPAIR_ATTEMPTS = 2;
 
-export const afterRoute = (s: AgentState): "gather" | "respond" =>
-  s.route?.kind === "edit" || s.route?.kind === "ask" ? "gather" : "respond";
+export const afterRoute = (s: AgentState): "gather" | "find" | "respond" => {
+  if (s.route?.kind === "edit" || s.route?.kind === "ask") return "gather";
+  if (s.route?.kind === "switch") return "find";
+  return "respond";
+};
+
+export const afterFind = (): "respond" => "respond";
 
 export const afterGather = (s: AgentState): "generate" | "respond" =>
   s.route?.kind === "ask" ? "respond" : "generate";

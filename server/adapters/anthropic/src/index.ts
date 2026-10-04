@@ -13,6 +13,8 @@ export interface AnthropicModelOptions {
   apiKey: string;
   model: string;
   timeoutMs: number;
+  // Needed when the API key is not scoped to a workspace. Sent as a header only when set.
+  workspaceId?: string;
   // Injected by tests; defaults to the global fetch.
   fetch?: typeof globalThis.fetch;
 }
@@ -33,6 +35,7 @@ export function createAnthropicModel(options: AnthropicModelOptions): ModelClien
     apiKey: options.apiKey,
     timeout: options.timeoutMs,
     maxRetries: 2,
+    ...(options.workspaceId ? { defaultHeaders: { "anthropic-workspace-id": options.workspaceId } } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
   });
 

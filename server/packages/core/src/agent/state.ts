@@ -1,10 +1,10 @@
 // The state the graph passes between nodes. The engine keeps `messages` per
 // thread; every other field is reset at the start of each run (startRun).
 import type { A2UIDocument, AgentRequest, CompositionSummary } from "@experience-agent/contract";
-import type { CatalogEntry, ChatMessage } from "../ports";
+import type { CatalogEntry, ChatMessage, CompositionCandidate } from "../ports";
 import type { ValidationError } from "../validator";
 
-export type RouteKind = "edit" | "ask" | "scope" | "unsupported";
+export type RouteKind = "edit" | "ask" | "scope" | "unsupported" | "switch";
 
 export interface Route {
   kind: RouteKind;
@@ -14,6 +14,10 @@ export interface Route {
   topic: string | null;
   // Plain sentence for scope and unsupported requests, shown to the user.
   message: string;
+  // Questions for the guideline source, written for what the generator must know.
+  guidelineQueries: string[];
+  // For switch: the composition name the designer used, e.g. "Basic Plan Tile - Mobile".
+  targetText: string | null;
 }
 
 export interface GatheredContext {
@@ -39,6 +43,9 @@ export interface AgentState {
   refusal: Refusal | null;
   validationErrors: ValidationError[];
   repairAttempts: number;
+  // Set by find: the composition to open, or a plain reply when no single one was chosen.
+  target: CompositionCandidate | null;
+  reply: string | null;
 }
 
 // Values that belong to one run. The engine passes these as the input of
@@ -55,5 +62,7 @@ export function startRun(request: AgentRequest): AgentState {
     refusal: null,
     validationErrors: [],
     repairAttempts: 0,
+    target: null,
+    reply: null,
   };
 }

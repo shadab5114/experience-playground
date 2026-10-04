@@ -17,13 +17,17 @@ import { createRecordingLog, createScriptedModel, createTestEngine } from "./tes
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_DIR = join(HERE, "../../../ds-packs/vds/golden/graph");
 
+type GoldenExpect =
+  | { type: "result"; summary: string; message: string; repairs: number }
+  | { type: "scope"; message: string; repairs: 0 };
+
 interface GoldenFixture {
   name: string;
   source: string;
   compositionId: string;
   prompt: string;
   replies: unknown[];
-  expect: { type: "result"; summary: string; message: string; repairs: number };
+  expect: GoldenExpect;
 }
 
 const fixtures = readdirSync(GOLDEN_DIR)
@@ -46,10 +50,11 @@ afterAll(async () => {
 });
 
 describe("golden scenarios", () => {
-  test("there is a fixture for each approved scenario", () => {
+  test("there is a fixture for each approved scenario and for the scope notice", () => {
     expect(fixtures.map((f) => f.golden.name).sort()).toEqual([
       "approved cap color (red)",
       "highlight price difference",
+      "scope: change the PDP header",
       "smaller badge",
     ]);
   });
@@ -69,6 +74,15 @@ describe("golden scenarios", () => {
       const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
       const events: AgentEvent[] = [];
       for await (const e of engine.run({ request, threadId: `golden-${file}` })) events.push(e);
+
+      if (golden.expect.type === "scope") {
+        // A request outside the locked composition stops after route, with no model call past it.
+        const stepped = events.flatMap((e) => (e.type === "status" && e.state === "done" ? [e.stepId] : []));
+        expect(stepped).toEqual(["route"]);
+        expect(events.at(-1)).toEqual({ type: "scope", message: golden.expect.message });
+        expect(model.remaining()).toBe(0);
+        return;
+      }
 
       // Each repair is followed by another validation.
       const expectedSteps = [

@@ -118,7 +118,7 @@ describe("agent graph", () => {
     expect(statuses(events)).toContain("repair:running");
     expect(statuses(events).filter((s) => s.startsWith("validate:done"))).toHaveLength(2);
     expect(terminals(events)).toMatchObject([{ type: "result", a2ui: fixed }]);
-    expect(model.calls.map((c) => c.schemaName)).toContain("kind,components,topic,message");
+    expect(model.calls.map((c) => c.schemaName)).toContain("kind,components,topic,message,guidelineQueries,targetText");
   });
 
   test("after two repairs that still fail, the run ends with a retryable error and no tile", async () => {
@@ -258,5 +258,191 @@ describe("agent graph", () => {
     ]);
     expect(log.entries.map((e) => e.event)).toEqual(["agent-run-failed"]);
     expect(JSON.stringify(events)).not.toContain("scripted model");
+  });
+
+  test("a failed guideline lookup is logged and the run still sends a validated result", async () => {
+    const draft = withComponent("badge", { backgroundColor: "red" });
+    const model = createScriptedModel([routeReply("edit"), editReply(draft, "Cap color changed to red")]);
+    const log = createRecordingLog();
+    const failingGuidelines = {
+      search: async () => {
+        throw new Error("rag app is down");
+      },
+    };
+    const engine = createTestEngine({ model, catalog, guidelines: failingGuidelines, compositions: store, log });
+
+    const events = await run(engine, "guidelines-down", request("Make the cap red"));
+
+    expect(terminals(events)).toEqual([
+      { type: "result", a2ui: draft, summary: "Cap color changed to red", message: "Done." },
+    ]);
+    expect(log.entries).toEqual([
+      expect.objectContaining({
+        level: "warn",
+        event: "guidelines-unavailable",
+        fields: expect.objectContaining({ query: 0, reason: "Error" }),
+      }),
+    ]);
+  });
+
+  test("guideline lookups use the questions the route wrote, never the user's words", async () => {
+    const draft = withComponent("badge", { backgroundColor: "red" });
+    const questions = ["Which Badge background colors are approved on a plan tile, and is red one of them?"];
+    const model = createScriptedModel([
+      { ...routeReply("edit"), guidelineQueries: questions },
+      editReply(draft),
+    ]);
+    const asked: { query: string; components: string[] }[] = [];
+    const recordingGuidelines = {
+      search: async (q: { query: string; components: string[] }) => {
+        asked.push(q);
+        return [];
+      },
+    };
+    const engine = createTestEngine({ model, catalog, guidelines: recordingGuidelines, compositions: store, log: createRecordingLog() });
+
+    await run(engine, "queries-1", request("change cap color or badge to red"));
+
+    expect(asked).toEqual([{ query: questions[0], components: ["Badge"] }]);
+    expect(JSON.stringify(asked)).not.toContain("change cap color");
+  });
+
+  describe("chat-first start (no composition open)", () => {
+    const chatRequest = (prompt: string) => AgentRequest.parse({ prompt });
+
+    test("a typed request to open a tile goes straight to find and sends a switch", async () => {
+      const model = createScriptedModel([
+        { kind: "switch", components: [], topic: null, message: "", guidelineQueries: [], targetText: "home plan" },
+      ]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "chat-first-switch", chatRequest("show me home plan"));
+
+      expect(statuses(events)).toEqual(["route:running", "route:done", "find:running", "find:done"]);
+      expect(terminals(events)).toEqual([
+        {
+          type: "switch",
+          compositionId: "home-plan-tile",
+          name: "Home Plan",
+          message: "Opening Home Plan. Unsaved work in this task will be discarded.",
+        },
+      ]);
+    });
+
+    test("an edit with no composition open is sent back to choose one, with no edit work", async () => {
+      const model = createScriptedModel([
+        { kind: "edit", components: ["Badge"], topic: "backgroundColor", message: "", guidelineQueries: [], targetText: null },
+      ]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "chat-first-edit", chatRequest("make the badge red"));
+
+      expect(statuses(events).some((s) => s.startsWith("gather") || s.startsWith("generate"))).toBe(false);
+      expect(terminals(events)).toEqual([
+        {
+          type: "refusal",
+          reason: 'Tell me which composition to open first, for example "show me home plan".',
+          alternatives: [],
+        },
+      ]);
+      expect(model.calls).toHaveLength(1);
+    });
+  });
+
+  describe("switching composition", () => {
+    const switchReply = (targetText: string) => ({
+      kind: "switch",
+      components: [],
+      topic: null,
+      message: "",
+      guidelineQueries: [],
+      targetText,
+    });
+
+    test("a name that matches one composition sends a switch event and no model call past route", async () => {
+      const model = createScriptedModel([switchReply("Basic Plan Tile")]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "switch-1", request("bring me Basic Plan Tile", "home-plan-tile"));
+
+      expect(statuses(events)).toEqual(["route:running", "route:done", "find:running", "find:done"]);
+      expect(terminals(events)).toEqual([
+        {
+          type: "switch",
+          compositionId: "basic-plan-tile",
+          name: "Basic Plan – Mobile",
+          message: "Opening Basic Plan – Mobile. Unsaved work in this task will be discarded.",
+        },
+      ]);
+      expect(model.remaining()).toBe(0);
+    });
+
+    test("when the extracted name matches nothing, the designer's own words are searched instead", async () => {
+      // The route sometimes adds words the designer did not use. The prompt's words still find the tile.
+      const model = createScriptedModel([switchReply("Home Plan – Mobile")]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "switch-fallback", request("show me home plan"));
+
+      expect(terminals(events)).toEqual([
+        {
+          type: "switch",
+          compositionId: "home-plan-tile",
+          name: "Home Plan",
+          message: "Opening Home Plan. Unsaved work in this task will be discarded.",
+        },
+      ]);
+    });
+
+    test("asking for the composition already open is an answer, not a switch", async () => {
+      const model = createScriptedModel([switchReply("Basic Plan Tile")]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "switch-same", request("bring me Basic Plan Tile"));
+
+      expect(terminals(events)).toEqual([{ type: "answer", text: "Basic Plan – Mobile is already open." }]);
+    });
+
+    test("a name with no match is an answer that says so", async () => {
+      const model = createScriptedModel([switchReply("Premium Gold Tile")]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "switch-none", request("bring me Premium Gold Tile"));
+
+      expect(terminals(events)).toEqual([
+        { type: "answer", text: `I couldn't find a composition called "Premium Gold Tile" in this design system.` },
+      ]);
+    });
+
+    test("several matches are settled by the model, which may pick only one of them", async () => {
+      const model = createScriptedModel([
+        switchReply("Plan Tile"),
+        { compositionId: "home-plan-tile", message: "" },
+      ]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "switch-pick", request("bring me the plan tile"));
+
+      expect(terminals(events)).toEqual([
+        {
+          type: "switch",
+          compositionId: "home-plan-tile",
+          name: "Home Plan",
+          message: "Opening Home Plan. Unsaved work in this task will be discarded.",
+        },
+      ]);
+    });
+
+    test("when the model picks an id that was not offered, the designer is asked instead", async () => {
+      const model = createScriptedModel([
+        switchReply("Plan Tile"),
+        { compositionId: "made-up-tile", message: "Which plan tile did you mean?" },
+      ]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+
+      const events = await run(engine, "switch-bad-pick", request("bring me the plan tile"));
+
+      expect(terminals(events)).toEqual([{ type: "answer", text: "Which plan tile did you mean?" }]);
+    });
   });
 });

@@ -53,6 +53,8 @@ export type ChatMessage =
   | { kind: 'scope'; id: string; text: string }
   | { kind: 'system'; id: string; text: string }
   | { kind: 'error'; id: string; text: string; retryPrompt?: string }
+  // The agent asked to open another composition. Shown only when there is unsaved work.
+  | { kind: 'switch'; id: string; compositionId: string; name: string; text: string }
 
 export interface TaskState {
   threadId: string

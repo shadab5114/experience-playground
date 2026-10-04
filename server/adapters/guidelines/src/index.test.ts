@@ -19,21 +19,19 @@ writeFileSync(
 describe("file guideline source (stub for the RAG endpoint)", () => {
   const source = createFileGuidelineSource(file);
 
-  test("returns passages for the component and topic, with source ids", async () => {
-    expect(await source.search({ component: "TileContainer", topic: "background" })).toEqual([
+  test("returns the passages for the components asked about, with source ids", async () => {
+    expect(await source.search({ query: "any question", components: ["TileContainer"] })).toEqual([
       { sourceId: "bg", text: "Use surface tokens." },
       { sourceId: "tile-any", text: "Whole-component note." },
     ]);
   });
 
-  test("a topic that matches nothing returns only the component-wide notes", async () => {
-    expect(await source.search({ component: "TileContainer", topic: "padding" })).toEqual([
-      { sourceId: "tile-any", text: "Whole-component note." },
-    ]);
+  test("returns passages for every component when none is named", async () => {
+    expect(await source.search({ query: "any question", components: [] })).toHaveLength(3);
   });
 
   test("returns nothing for a component with no guidelines", async () => {
-    expect(await source.search({ component: "Divider" })).toEqual([]);
+    expect(await source.search({ query: "any question", components: ["Divider"] })).toEqual([]);
   });
 
   test("rejects a file whose shape is wrong", () => {

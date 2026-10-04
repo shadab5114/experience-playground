@@ -11,9 +11,18 @@ function newId(): string {
   return crypto.randomUUID()
 }
 
+/** A chat started before any tile is chosen. It becomes a task when the agent opens one. */
+export interface ChatDraft {
+  threadId: string
+  messages: ChatMessage[]
+  agentStatus: 'idle' | 'working'
+}
+
 interface TaskStore {
   /** `null` before an experience is picked. */
   task: TaskState | null
+  /** The conversation started by typing before any tile is picked. `null` otherwise. */
+  draft: ChatDraft | null
   experiences: Experience[]
   experiencesLoaded: boolean
   /** `null` until a task is picked; `{ compositionId, appearsIn: [] }` once loaded if nothing maps to it. */
@@ -24,6 +33,11 @@ interface TaskStore {
   loadExperiences(): Promise<void>
   pickExperience(experienceId: string): Promise<void>
   closeTask(): void
+  /** Discards the current task and opens another composition, keeping `carry` messages in the chat. */
+  switchTo(compositionId: string, carry?: ChatMessage[]): Promise<void>
+  dismissMessage(messageId: string): void
+  /** A prompt typed before any tile is picked. The agent may open a tile from it. */
+  sendChatFirstPrompt(text: string): Promise<void>
   sendPrompt(text: string): Promise<void>
   undo(): void
   redo(): void
@@ -41,6 +55,7 @@ function currentA2ui(task: TaskState) {
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
   task: null,
+  draft: null,
   experiences: [],
   experiencesLoaded: false,
   mapping: null,
@@ -85,7 +100,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       messages: [greeting],
     }
 
-    set({ task, mapping: null, pageTemplatesById: {} })
+    set({ task, draft: null, mapping: null, pageTemplatesById: {} })
 
     // Impacts view data: who this composition appears in, and the page
     // templates those placements need. Loaded alongside the task (not lazily
@@ -103,7 +118,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   closeTask() {
-    set({ task: null, mapping: null, pageTemplatesById: {} })
+    set({ task: null, draft: null, mapping: null, pageTemplatesById: {} })
   },
 
   async sendPrompt(text: string) {
@@ -133,6 +148,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         prompt: text,
       }
 
+      // Set once the stream gives the designer something visible. Otherwise a fallback says so.
+      let handled = false
+
       for await (const event of agentClient.sendPrompt(task.threadId, req)) {
         if (event.type === 'status') {
           const existing = steps.find((s) => s.id === event.stepId)
@@ -147,6 +165,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         }
 
         if (event.type === 'result') {
+          handled = true
           set((state) => {
             if (!state.task) return state
             const nextNumber = Math.max(...state.task.versions.map((v) => v.number)) + 1
@@ -165,19 +184,145 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             }
           })
         } else if (event.type === 'refusal') {
+          handled = true
           const message: ChatMessage = { kind: 'refusal', id: newId(), reason: event.reason, alternatives: event.alternatives }
           set((state) => (state.task ? { task: { ...state.task, messages: [...state.task.messages, message] } } : state))
         } else if (event.type === 'scope') {
+          handled = true
           const message: ChatMessage = { kind: 'scope', id: newId(), text: event.message }
           set((state) => (state.task ? { task: { ...state.task, messages: [...state.task.messages, message] } } : state))
+        } else if (event.type === 'answer') {
+          handled = true
+          const message: ChatMessage = { kind: 'agent', id: newId(), text: event.text }
+          set((state) => (state.task ? { task: { ...state.task, messages: [...state.task.messages, message] } } : state))
+        } else if (event.type === 'switch') {
+          handled = true
+          const current = get().task
+          if (current && hasUnsavedChanges(current)) {
+            // Ask first: the designer may want to keep the unsaved work.
+            const message: ChatMessage = {
+              kind: 'switch',
+              id: newId(),
+              compositionId: event.compositionId,
+              name: event.name,
+              text: event.message,
+            }
+            set((state) => (state.task ? { task: { ...state.task, messages: [...state.task.messages, message] } } : state))
+          } else {
+            await get().switchTo(event.compositionId)
+          }
         } else if (event.type === 'error') {
+          handled = true
           const message: ChatMessage = { kind: 'error', id: newId(), text: event.message, retryPrompt: text }
           set((state) => (state.task ? { task: { ...state.task, messages: [...state.task.messages, message] } } : state))
         }
       }
+
+      if (!handled) {
+        // Never end silently: say so, and offer a retry.
+        const message: ChatMessage = {
+          kind: 'error',
+          id: newId(),
+          text: 'The agent finished without a reply you can see. Try again.',
+          retryPrompt: text,
+        }
+        set((state) => (state.task ? { task: { ...state.task, messages: [...state.task.messages, message] } } : state))
+      }
     } finally {
       set((state) => (state.task ? { task: { ...state.task, agentStatus: 'idle' } } : state))
     }
+  },
+
+  async switchTo(compositionId: string, carry: ChatMessage[] = []) {
+    let experience = get().experiences.find((e) => e.compositionId === compositionId)
+    if (!experience) {
+      await get().loadExperiences()
+      experience = get().experiences.find((e) => e.compositionId === compositionId)
+    }
+    if (!experience) {
+      set((state) => {
+        if (!state.task) return state
+        const message: ChatMessage = { kind: 'error', id: newId(), text: `I couldn't open composition ${compositionId}.` }
+        return { task: { ...state.task, messages: [...state.task.messages, message] } }
+      })
+      return
+    }
+    // Same path as closing the task and picking again. Unsaved work is discarded by design.
+    get().closeTask()
+    await get().pickExperience(experience.id)
+    // Messages from a chat started before any tile was picked stay visible above the greeting.
+    if (carry.length > 0) {
+      set((state) => (state.task ? { task: { ...state.task, messages: [...carry, ...state.task.messages] } } : state))
+    }
+  },
+
+  async sendChatFirstPrompt(text: string) {
+    if (get().task) return
+    const existing = get().draft
+    if (existing?.agentStatus === 'working') return
+    const draft: ChatDraft = existing ?? { threadId: newId(), messages: [], agentStatus: 'idle' }
+
+    const userMessage: ChatMessage = { kind: 'user', id: newId(), text }
+    set({ draft: { ...draft, agentStatus: 'working', messages: [...draft.messages, userMessage] } })
+
+    const statusMessageId = newId()
+    const steps: { id: string; label: string; state: 'running' | 'done' }[] = []
+    const pushStatusMessage = () => {
+      set((state) => {
+        if (!state.draft) return state
+        const withoutStatus = state.draft.messages.filter((m) => m.id !== statusMessageId)
+        const statusMessage: ChatMessage = { kind: 'status', id: statusMessageId, steps: [...steps] }
+        return { draft: { ...state.draft, messages: [...withoutStatus, statusMessage] } }
+      })
+    }
+    const append = (message: ChatMessage) =>
+      set((state) => (state.draft ? { draft: { ...state.draft, messages: [...state.draft.messages, message] } } : state))
+
+    let handled = false
+    try {
+      // No composition in the request: the agent only opens one, it never edits.
+      for await (const event of agentClient.sendPrompt(draft.threadId, { prompt: text })) {
+        if (event.type === 'status') {
+          const existingStep = steps.find((s) => s.id === event.stepId)
+          if (existingStep) {
+            existingStep.state = event.state
+            existingStep.label = event.label
+          } else {
+            steps.push({ id: event.stepId, label: event.label, state: event.state })
+          }
+          pushStatusMessage()
+          continue
+        }
+
+        if (event.type === 'switch') {
+          handled = true
+          const carried = (get().draft?.messages ?? []).filter((m) => m.kind !== 'status')
+          set({ draft: null })
+          await get().switchTo(event.compositionId, carried)
+          return
+        }
+
+        handled = true
+        if (event.type === 'answer') append({ kind: 'agent', id: newId(), text: event.text })
+        else if (event.type === 'refusal') append({ kind: 'refusal', id: newId(), reason: event.reason, alternatives: event.alternatives })
+        else if (event.type === 'scope') append({ kind: 'scope', id: newId(), text: event.message })
+        else if (event.type === 'error') append({ kind: 'error', id: newId(), text: event.message, retryPrompt: text })
+        else append({ kind: 'error', id: newId(), text: 'The agent did not return a result for this request. Try again.', retryPrompt: text })
+      }
+
+      if (!handled) {
+        append({ kind: 'error', id: newId(), text: 'The agent finished without a reply you can see. Try again.', retryPrompt: text })
+      }
+    } finally {
+      set((state) => (state.draft ? { draft: { ...state.draft, agentStatus: 'idle' } } : state))
+    }
+  },
+
+  dismissMessage(messageId: string) {
+    set((state) => {
+      if (!state.task) return state
+      return { task: { ...state.task, messages: state.task.messages.filter((m) => m.id !== messageId) } }
+    })
   },
 
   undo() {

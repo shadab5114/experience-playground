@@ -1,0 +1,19 @@
+{
+  "name": "scope: change the PDP header",
+  "source": "src/mocks/scenarios/00-scope-notice.json",
+  "compositionId": "basic-plan-tile",
+  "prompt": "Change the PDP header",
+  "replies": [
+    {
+      "kind": "scope",
+      "components": [],
+      "topic": null,
+      "message": "I can only work on the active composition (Basic Plan – Mobile). Close this task to switch to another experience or page."
+    }
+  ],
+  "expect": {
+    "type": "scope",
+    "message": "I can only work on the active composition (Basic Plan – Mobile). Close this task to switch to another experience or page.",
+    "repairs": 0
+  }
+}

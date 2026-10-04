@@ -1,11 +1,18 @@
 import { describe, expect, test } from "vitest";
-import { afterGather, afterGenerate, afterRoute, afterValidate, MAX_REPAIR_ATTEMPTS } from "./routing";
+import { afterFind, afterGather, afterGenerate, afterRoute, afterValidate, MAX_REPAIR_ATTEMPTS } from "./routing";
 import { startRun, type AgentState, type Route } from "./state";
 import type { ValidationError } from "../validator";
 
 const request = { experienceId: "e", compositionId: "c", currentA2ui: { a2ui: [] }, prompt: "p" };
 
-const route = (kind: Route["kind"]): Route => ({ kind, components: [], topic: null, message: "" });
+const route = (kind: Route["kind"]): Route => ({
+  kind,
+  components: [],
+  topic: null,
+  message: "",
+  guidelineQueries: [],
+  targetText: null,
+});
 const withState = (patch: Partial<AgentState>): AgentState => ({ ...startRun(request), ...patch });
 const error: ValidationError = { severity: "error", layer: "catalog", code: "prop-invalid", path: "x", message: "m" };
 
@@ -15,6 +22,11 @@ describe("routing edges", () => {
     expect(afterRoute(withState({ route: route("ask") }))).toBe("gather");
     expect(afterRoute(withState({ route: route("scope") }))).toBe("respond");
     expect(afterRoute(withState({ route: route("unsupported") }))).toBe("respond");
+  });
+
+  test("a switch goes to find, and find always ends the run's branch at respond", () => {
+    expect(afterRoute(withState({ route: route("switch") }))).toBe("find");
+    expect(afterFind()).toBe("respond");
   });
 
   test("a question skips generate", () => {

@@ -71,6 +71,24 @@ describe("Anthropic model adapter", () => {
     expect(tools[0]?.input_schema).not.toHaveProperty("$schema");
   });
 
+  test("sends the workspace header only when a workspace id is configured", async () => {
+    const withWorkspace: Captured[] = [];
+    const model = createAnthropicModel({
+      baseURL: "https://gateway.example.test",
+      apiKey: SECRET,
+      model: "test-model",
+      timeoutMs: 5_000,
+      workspaceId: "wrkspc_test",
+      fetch: fakeFetch({ kind: "edit", summary: "Done" }, withWorkspace),
+    });
+    await model.structured({ system: "", messages: [], schema: Answer });
+    expect(withWorkspace[0]?.headers.get("anthropic-workspace-id")).toBe("wrkspc_test");
+
+    const without: Captured[] = [];
+    await modelWith({ kind: "edit", summary: "Done" }, without).structured({ system: "", messages: [], schema: Answer });
+    expect(without[0]?.headers.get("anthropic-workspace-id")).toBeNull();
+  });
+
   test("returns the parsed tool input", async () => {
     const model = modelWith({ kind: "refusal", summary: "No" }, []);
     await expect(model.structured({ system: "", messages: [], schema: Answer })).resolves.toEqual({

@@ -12,9 +12,15 @@ export interface Config {
   ANTHROPIC_API_KEY: string;
   MODEL_ID: string;
   MODEL_TIMEOUT_MS: number;
-  // Guidelines RAG endpoint. Optional until the adapter for it exists.
+  // Only for keys not scoped to a workspace. Optional.
+  ANTHROPIC_WORKSPACE_ID?: string;
+  // Connections held by runs (one per active thread). Separate from the read pool, so
+  // long runs cannot starve composition reads.
+  RUN_LOCK_POOL_SIZE: number;
+  // Guidelines RAG app. When RAG_BASE_URL is unset, the file stub is used instead.
   RAG_BASE_URL?: string;
   RAG_API_KEY?: string;
+  RAG_TIMEOUT_MS: number;
 }
 
 // An empty env value counts as unset.
@@ -34,8 +40,11 @@ const Settings = z.object({
   ANTHROPIC_API_KEY: z.string().min(1),
   MODEL_ID: z.string().min(1),
   MODEL_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+  ANTHROPIC_WORKSPACE_ID: optional(z.string().min(1)),
+  RUN_LOCK_POOL_SIZE: z.coerce.number().int().positive().default(10),
   RAG_BASE_URL: optional(z.url()),
   RAG_API_KEY: optional(z.string().min(1)),
+  RAG_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
 });
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {

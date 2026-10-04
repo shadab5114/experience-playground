@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import type pg from "pg";
 import {
   AgentEvent,
@@ -8,7 +8,8 @@ import {
   type PlacementView,
 } from "@experience-agent/contract";
 import { PostgresCompositionStore } from "@experience-agent/postgres";
-import { resetTestDatabase } from "../../../../adapters/postgres/testing";
+import { resetTestDatabase, testConnection } from "../../../../adapters/postgres/testing";
+import { createPool, PostgresThreadLock } from "@experience-agent/postgres";
 import { createRecordingLog, createScriptedModel, createTestEngine } from "../../../../adapters/langgraph/src/testing";
 import { createVdsCatalog, readPackSettings } from "@experience-agent/vds-pack";
 import { createFileGuidelineSource } from "@experience-agent/guidelines";
@@ -28,6 +29,7 @@ async function json<T>(res: Response): Promise<T> {
 }
 
 let pool: pg.Pool;
+let lockPool: pg.Pool;
 let app: ReturnType<typeof createApp>;
 
 // The seed composition is a valid draft, so a scripted "no change" edit passes validation.
@@ -50,6 +52,7 @@ function post(body: unknown, threadId = "thread-1") {
 
 beforeAll(async () => {
   pool = await resetTestDatabase();
+  lockPool = createPool(testConnection(), { max: 5, connectionTimeoutMillis: 1_000 });
   const store = withListCache(new PostgresCompositionStore(pool, "vds"), 30_000);
   seedDoc = (await new PostgresCompositionStore(pool, "vds").get("basic-plan-tile"))!.a2ui;
   const model = createScriptedModel([
@@ -66,12 +69,13 @@ beforeAll(async () => {
       compositions: new PostgresCompositionStore(pool, "vds"),
       log: createRecordingLog(),
     }),
+    threadLock: new PostgresThreadLock(lockPool),
     log: createRecordingLog(),
   });
 });
 
 afterAll(async () => {
-  await pool.end();
+  await Promise.all([pool.end(), lockPool.end()]);
 });
 
 describe("health", () => {
@@ -86,6 +90,7 @@ describe("health", () => {
       compositions: withListCache(new PostgresCompositionStore(pool, "vds"), 0),
       pingDatabase: () => Promise.reject(new Error("down")),
       engine: unusedEngine,
+      threadLock: new PostgresThreadLock(lockPool),
       log: createRecordingLog(),
     });
     const res = await down.request("/health");
@@ -138,7 +143,8 @@ describe("composition reads (no model)", () => {
 
 describe("POST /v1/threads/:threadId/prompts", () => {
   test("rejects a malformed body with 400 before any stream starts", async () => {
-    const res = await post({ prompt: "no composition here" });
+    // A composition without its document is malformed; a bare prompt is a valid chat-first start.
+    const res = await post({ compositionId: "basic-plan-tile", prompt: "no document here" });
     expect(res.status).toBe(400);
     expect(res.headers.get("content-type")).toContain("application/json");
   });
@@ -169,6 +175,75 @@ describe("POST /v1/threads/:threadId/prompts", () => {
     expect(terminal).toHaveLength(1);
     expect(events.at(-1)?.type).toBe("result");
     expect(terminal[0]).toMatchObject({ type: "result", a2ui: seedDoc });
+  });
+});
+
+describe("one run per thread", () => {
+  // Each test gets a fresh gate. The engine holds its run until the gate opens,
+  // so the thread lock stays taken for as long as the test needs.
+  let release!: () => void;
+  let gate: Promise<void>;
+  const gatedEngine: AgentEngine = {
+    async *run() {
+      await gate;
+      yield { type: "error", message: "finished", retryable: false };
+    },
+  };
+  let gated: ReturnType<typeof createApp>;
+
+  beforeAll(() => {
+    gated = createApp({
+      compositions: new PostgresCompositionStore(pool, "vds"),
+      pingDatabase: () => pool.query("select 1").then(() => undefined),
+      engine: gatedEngine,
+      threadLock: new PostgresThreadLock(lockPool),
+      log: createRecordingLog(),
+    });
+  });
+
+  beforeEach(() => {
+    gate = new Promise<void>((resolve) => (release = resolve));
+  });
+
+  const send = (threadId: string) =>
+    gated.request(`/v1/threads/${threadId}/prompts`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(validBody()),
+    });
+
+  test("a second prompt on a busy thread gets 409", async () => {
+    const first = await send("busy-thread");
+    expect(first.status).toBe(200);
+
+    const second = await send("busy-thread");
+    expect(second.status).toBe(409);
+    expect(await second.json()).toEqual({ error: "A prompt is already running on this thread." });
+
+    release();
+    await first.text();
+  });
+
+  test("different threads run at the same time", async () => {
+    // Both runs are held by the gate here, so both must already be running.
+    const a = await send("parallel-a");
+    const b = await send("parallel-b");
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+
+    release();
+    await Promise.all([a.text(), b.text()]);
+  });
+
+  test("the thread is free again once its run has ended", async () => {
+    const first = await send("reuse-thread");
+    release();
+    await first.text();
+
+    const again = await send("reuse-thread");
+    expect(again.status).toBe(200);
+    release();
+    await again.text();
   });
 });
 

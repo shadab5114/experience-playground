@@ -6,6 +6,7 @@ import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
 import type pg from "pg";
 import { AgentEvent, type AgentRequest } from "@experience-agent/contract";
 import {
+  afterFind,
   afterGather,
   afterGenerate,
   afterRoute,
@@ -34,6 +35,8 @@ export const GraphState = Annotation.Root({
   refusal: Annotation<AgentState["refusal"]>(),
   validationErrors: Annotation<AgentState["validationErrors"]>(),
   repairAttempts: Annotation<AgentState["repairAttempts"]>(),
+  target: Annotation<AgentState["target"]>(),
+  reply: Annotation<AgentState["reply"]>(),
 });
 
 // Each core node writes its events to LangGraph's custom stream, which the engine forwards.
@@ -46,6 +49,7 @@ const asNode = (fn: NodeFn) => async (state: AgentState, config: LangGraphRunnab
 export function buildGraph(nodes: Nodes) {
   return new StateGraph(GraphState)
     .addNode("classify", asNode(nodes.route))
+    .addNode("find", asNode(nodes.find))
     .addNode("gather", asNode(nodes.gather))
     .addNode("generate", asNode(nodes.generate))
     .addNode("validate", asNode(nodes.validate))
@@ -53,6 +57,7 @@ export function buildGraph(nodes: Nodes) {
     .addNode("respond", asNode(nodes.respond))
     .addEdge(START, "classify")
     .addConditionalEdges("classify", afterRoute)
+    .addConditionalEdges("find", afterFind)
     .addConditionalEdges("gather", afterGather)
     .addConditionalEdges("generate", afterGenerate)
     .addConditionalEdges("validate", afterValidate)

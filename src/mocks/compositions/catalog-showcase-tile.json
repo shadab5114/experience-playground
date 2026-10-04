@@ -1,0 +1,1076 @@
+{
+  "id": "catalog-showcase-tile",
+  "name": "Catalog Showcase (all components)",
+  "a2ui": {
+    "meta": {
+      "provider": "mock",
+      "model": "experience-playground-fixture",
+      "catalogId": "https://pdesign.dev/catalog/v1/catalog.json",
+      "components": [
+        "Accordion",
+        "AccordionItem",
+        "Badge",
+        "BadgeIndicator",
+        "Button",
+        "ButtonGroup",
+        "Caret",
+        "Checkbox",
+        "CheckboxGroup",
+        "ComposableTileContainer",
+        "DirectionalIcon",
+        "IconButton",
+        "Image",
+        "InputField",
+        "ListGroup",
+        "ListGroupItem",
+        "Modal",
+        "Notification",
+        "RadioBox",
+        "RadioBoxGroup",
+        "RadioButton",
+        "RadioButtonGroup",
+        "ScreenReaderText",
+        "Stack",
+        "Text",
+        "TextArea",
+        "TextLink",
+        "TextLinkCaret",
+        "TileContainer",
+        "Tilelet",
+        "TitleLockup",
+        "TitleLockupEyebrow",
+        "TitleLockupSubtitle",
+        "TitleLockupTitle",
+        "Toggle",
+        "Tooltip"
+      ],
+      "generatedAt": "2026-10-04T00:00:00.000Z"
+    },
+    "a2ui": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "main",
+          "catalogId": "https://pdesign.dev/catalog/v1/catalog.json"
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "main",
+          "path": "/",
+          "value": {
+            "page": {
+              "eyebrow": "VDS CATALOG",
+              "title": "Catalog coverage showcase",
+              "subtitle": "One rendered instance of every component in catalog.json.",
+              "bodyCopy": "Everything on this surface is rendered from the A2UI document - no layout is hardcoded in React.",
+              "badgeLabel": "All 36",
+              "price": "$30/mo"
+            },
+            "tile": {
+              "title": "Disney+ on us",
+              "subtitle": "Included for 6 months"
+            },
+            "perks": [
+              {
+                "label": "5G Ultra Wideband"
+              },
+              {
+                "label": "Mobile hotspot"
+              },
+              {
+                "label": "Disney+"
+              },
+              {
+                "label": "Travel pass"
+              }
+            ],
+            "prefs": {
+              "autopay": true,
+              "paperless": false
+            },
+            "form": {
+              "email": "jordan@example.com",
+              "notes": "",
+              "cycle": "monthly",
+              "storage": "256",
+              "addons": [
+                "music"
+              ]
+            },
+            "ui": {
+              "modalOpen": false,
+              "accordionOpen": true
+            }
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "main",
+          "components": [
+            {
+              "id": "root",
+              "component": "TileContainer",
+              "surface": "lightPrimary",
+              "background": "lightPrimary",
+              "padding": "6X",
+              "borderRadius": "standard",
+              "dropShadow": "subtle",
+              "showBorder": true,
+              "aspectRatio": "none",
+              "width": "100%",
+              "children": [
+                "page"
+              ]
+            },
+            {
+              "id": "page",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "32px",
+              "align": "stretch",
+              "primitive": "main",
+              "children": [
+                "secHeader",
+                "secTypography",
+                "secActions",
+                "secIcons",
+                "secPerks",
+                "secMedia",
+                "secTiles",
+                "secAccordion",
+                "secForms",
+                "secLists",
+                "secFeedback"
+              ]
+            },
+            {
+              "id": "secHeader",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "header",
+              "children": [
+                "lockup",
+                "srText"
+              ]
+            },
+            {
+              "id": "lockup",
+              "component": "TitleLockup",
+              "textAlignment": "left",
+              "eyebrow": {
+                "children": {
+                  "path": "/page/eyebrow"
+                },
+                "size": "bodySmall",
+                "primitive": "p"
+              },
+              "title": {
+                "children": {
+                  "path": "/page/title"
+                },
+                "size": "titleMedium",
+                "primitive": "h1"
+              },
+              "subtitle": {
+                "children": {
+                  "path": "/page/subtitle"
+                },
+                "size": "bodyLarge",
+                "primitive": "p"
+              }
+            },
+            {
+              "id": "srText",
+              "component": "ScreenReaderText",
+              "children": "Every component in the VDS catalog is rendered once below."
+            },
+            {
+              "id": "secTypography",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secTypographyHeading",
+                "lockupTitle",
+                "lockupSubtitle",
+                "lockupEyebrow",
+                "textBody",
+                "textFeature"
+              ]
+            },
+            {
+              "id": "secTypographyHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Typography"
+            },
+            {
+              "id": "lockupTitle",
+              "component": "TitleLockupTitle",
+              "children": "TitleLockupTitle",
+              "size": "titleSmall",
+              "primitive": "h3"
+            },
+            {
+              "id": "lockupSubtitle",
+              "component": "TitleLockupSubtitle",
+              "children": "TitleLockupSubtitle",
+              "size": "bodyLarge",
+              "primitive": "p"
+            },
+            {
+              "id": "lockupEyebrow",
+              "component": "TitleLockupEyebrow",
+              "children": "TITLELOCKUPEYEBROW",
+              "size": "bodySmall",
+              "primitive": "p"
+            },
+            {
+              "id": "textBody",
+              "component": "Text",
+              "kind": "body",
+              "size": "large",
+              "children": {
+                "path": "/page/bodyCopy"
+              }
+            },
+            {
+              "id": "textFeature",
+              "component": "Text",
+              "kind": "feature",
+              "size": "small",
+              "bold": true,
+              "children": "Feature text"
+            },
+            {
+              "id": "secActions",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secActionsHeading",
+                "actionRow",
+                "btnGroup"
+              ]
+            },
+            {
+              "id": "secActionsHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Actions"
+            },
+            {
+              "id": "actionRow",
+              "component": "Stack",
+              "direction": "row",
+              "gap": "16px",
+              "align": "center",
+              "wrap": "wrap",
+              "children": [
+                "btnPrimary",
+                "btnSecondary",
+                "textLink",
+                "textLinkCaret",
+                "iconBtn",
+                "toggle"
+              ]
+            },
+            {
+              "id": "btnPrimary",
+              "component": "Button",
+              "children": "Primary",
+              "kind": "primary",
+              "size": "large"
+            },
+            {
+              "id": "btnSecondary",
+              "component": "Button",
+              "children": "Secondary",
+              "kind": "secondary",
+              "size": "small"
+            },
+            {
+              "id": "textLink",
+              "component": "TextLink",
+              "children": "Inline link",
+              "kind": "inline",
+              "href": "#"
+            },
+            {
+              "id": "textLinkCaret",
+              "component": "TextLinkCaret",
+              "children": "See plan details",
+              "iconPosition": "right",
+              "href": "#"
+            },
+            {
+              "id": "iconBtn",
+              "component": "IconButton",
+              "kind": "lowContrastSolid",
+              "size": "large",
+              "showBorder": true,
+              "ariaLabel": "Notifications",
+              "showBadgeIndicator": true,
+              "icon": "bell",
+              "selectedIcon": "bell",
+              "iconOffset": {
+                "x": 0,
+                "y": 0
+              },
+              "badgeIndicator": {
+                "kind": "numbered",
+                "children": "3",
+                "backgroundColor": "red",
+                "size": "small"
+              }
+            },
+            {
+              "id": "toggle",
+              "component": "Toggle",
+              "checked": {
+                "path": "/prefs/autopay"
+              },
+              "showStatusText": true,
+              "onText": "Autopay on",
+              "offText": "Autopay off",
+              "textPosition": "right",
+              "ariaLabel": "Autopay"
+            },
+            {
+              "id": "btnGroup",
+              "component": "ButtonGroup",
+              "alignment": "left",
+              "size": "small",
+              "items": [
+                {
+                  "kind": "primary",
+                  "children": "Continue"
+                },
+                {
+                  "kind": "secondary",
+                  "children": "Back"
+                },
+                {
+                  "kind": "textLink",
+                  "children": "Cancel",
+                  "href": "#"
+                },
+                {
+                  "kind": "textLinkCaret",
+                  "children": "Compare plans",
+                  "href": "#"
+                }
+              ]
+            },
+            {
+              "id": "secIcons",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secIconsHeading",
+                "iconRow"
+              ]
+            },
+            {
+              "id": "secIconsHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Icons and indicators"
+            },
+            {
+              "id": "iconRow",
+              "component": "Stack",
+              "direction": "row",
+              "gap": "20px",
+              "align": "center",
+              "wrap": "wrap",
+              "children": [
+                "caret",
+                "dirIcon",
+                "tooltip",
+                "badgeIndicator",
+                "badge"
+              ]
+            },
+            {
+              "id": "caret",
+              "component": "Caret",
+              "direction": "right",
+              "size": "16"
+            },
+            {
+              "id": "dirIcon",
+              "component": "DirectionalIcon",
+              "name": "external-link",
+              "size": "20"
+            },
+            {
+              "id": "tooltip",
+              "component": "Tooltip",
+              "title": "Taxes and fees",
+              "children": [
+                "tooltipBody"
+              ],
+              "ariaLabel": "More information about taxes and fees"
+            },
+            {
+              "id": "tooltipBody",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Added at checkout based on your service address."
+            },
+            {
+              "id": "badgeIndicator",
+              "component": "BadgeIndicator",
+              "kind": "numbered",
+              "children": "12",
+              "size": "medium",
+              "backgroundColor": "red",
+              "containerSize": "20px",
+              "maximumDigits": 2
+            },
+            {
+              "id": "badge",
+              "component": "Badge",
+              "children": {
+                "path": "/page/badgeLabel"
+              },
+              "backgroundColor": "neonYellow"
+            },
+            {
+              "id": "secPerks",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secPerksHeading",
+                "perkRow"
+              ]
+            },
+            {
+              "id": "secPerksHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Dynamic list (ChildList template)"
+            },
+            {
+              "id": "perkRow",
+              "component": "Stack",
+              "direction": "row",
+              "gap": "8px",
+              "wrap": "wrap",
+              "children": {
+                "componentId": "perkBadge",
+                "path": "/perks"
+              }
+            },
+            {
+              "id": "perkBadge",
+              "component": "Badge",
+              "children": {
+                "path": "label"
+              },
+              "backgroundColor": "grayLowContrast"
+            },
+            {
+              "id": "secMedia",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secMediaHeading",
+                "image"
+              ]
+            },
+            {
+              "id": "secMediaHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Media"
+            },
+            {
+              "id": "image",
+              "component": "Image",
+              "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMjAnIGhlaWdodD0nMTgwJyB2aWV3Qm94PScwIDAgMzIwIDE4MCc+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSdnJyB4MT0nMCcgeTE9JzAnIHgyPScxJyB5Mj0nMSc+PHN0b3Agb2Zmc2V0PScwJyBzdG9wLWNvbG9yPScjMWIxZDFmJy8+PHN0b3Agb2Zmc2V0PScxJyBzdG9wLWNvbG9yPScjNGI1NTYzJy8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9JzMyMCcgaGVpZ2h0PScxODAnIGZpbGw9J3VybCgjZyknLz48Y2lyY2xlIGN4PScyNDgnIGN5PSc0Nicgcj0nMjYnIGZpbGw9JyNlOWZmMDAnIG9wYWNpdHk9Jy44NScvPjx0ZXh0IHg9JzI0JyB5PScxNTAnIGZvbnQtZmFtaWx5PSdIZWx2ZXRpY2EsQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScyMicgZmlsbD0nI2ZmZmZmZic+UGxhY2Vob2xkZXI8L3RleHQ+PC9zdmc+",
+              "alt": "Placeholder plan artwork",
+              "width": "320px",
+              "height": "180px",
+              "borderRadius": "8px",
+              "objectFit": "cover",
+              "showBorder": true
+            },
+            {
+              "id": "secTiles",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secTilesHeading",
+                "tileRow"
+              ]
+            },
+            {
+              "id": "secTilesHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Tiles"
+            },
+            {
+              "id": "tileRow",
+              "component": "Stack",
+              "direction": "row",
+              "gap": "16px",
+              "wrap": "wrap",
+              "align": "stretch",
+              "children": [
+                "tilelet",
+                "composable"
+              ]
+            },
+            {
+              "id": "tilelet",
+              "component": "Tilelet",
+              "eyebrow": {
+                "children": "PERK"
+              },
+              "title": {
+                "children": {
+                  "path": "/tile/title"
+                }
+              },
+              "subtitle": {
+                "children": {
+                  "path": "/tile/subtitle"
+                }
+              },
+              "badge": {
+                "children": "New",
+                "backgroundColor": "green"
+              },
+              "directionalIcon": {
+                "name": "right-arrow",
+                "size": "20"
+              },
+              "textAlignment": "left",
+              "padding": "4X",
+              "background": "lightSecondary",
+              "showBorder": true,
+              "borderRadius": "standard",
+              "aspectRatio": "none",
+              "width": "280px",
+              "href": "#",
+              "role": "link",
+              "ariaLabel": "Open the included perk"
+            },
+            {
+              "id": "composable",
+              "component": "ComposableTileContainer",
+              "cap": {
+                "children": [
+                  "capText"
+                ],
+                "backgroundColor": "neonYellow",
+                "alignment": "center"
+              },
+              "header": {
+                "eyebrow": {
+                  "children": "BUNDLE"
+                },
+                "title": {
+                  "children": "Composable tile"
+                }
+              },
+              "footer": {
+                "children": [
+                  "footerText"
+                ]
+              },
+              "children": [
+                "composableBody"
+              ],
+              "background": "lightSecondary",
+              "showBorder": true,
+              "width": "320px",
+              "padding": "4X",
+              "borderRadius": "standard",
+              "dropShadow": "subtle"
+            },
+            {
+              "id": "capText",
+              "component": "Text",
+              "kind": "body",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "LIMITED TIME"
+            },
+            {
+              "id": "composableBody",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Content in the tile's own children slot, between header and footer."
+            },
+            {
+              "id": "footerText",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Offer ends Oct 31"
+            },
+            {
+              "id": "secAccordion",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secAccordionHeading",
+                "accordion",
+                "accordionItem"
+              ]
+            },
+            {
+              "id": "secAccordionHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Accordion"
+            },
+            {
+              "id": "accordion",
+              "component": "Accordion",
+              "behavior": "singleOpen",
+              "triggerElement": "icon",
+              "triggerAlignment": "top",
+              "topLine": true,
+              "bottomLine": true,
+              "padding": "standard",
+              "children": [
+                "accItem1",
+                "accItem2"
+              ]
+            },
+            {
+              "id": "accItem1",
+              "component": "AccordionItem",
+              "header": {
+                "title": {
+                  "children": "What is included?"
+                }
+              },
+              "children": [
+                "accBody1"
+              ]
+            },
+            {
+              "id": "accItem2",
+              "component": "AccordionItem",
+              "header": {
+                "title": {
+                  "children": "How is it billed?"
+                },
+                "subtitle": {
+                  "children": "Monthly"
+                }
+              },
+              "children": [
+                "accBody2"
+              ]
+            },
+            {
+              "id": "accBody1",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Unlimited talk and text, plus 5G data on a compatible device."
+            },
+            {
+              "id": "accBody2",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Charged monthly, starting on your next bill cycle."
+            },
+            {
+              "id": "accordionItem",
+              "component": "AccordionItem",
+              "header": {
+                "title": {
+                  "children": "Standalone AccordionItem"
+                }
+              },
+              "opened": {
+                "path": "/ui/accordionOpen"
+              },
+              "children": [
+                "accBody3"
+              ]
+            },
+            {
+              "id": "accBody3",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Rendered outside an Accordion wrapper, opened from the data model."
+            },
+            {
+              "id": "secForms",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secFormsHeading",
+                "inputField",
+                "textArea",
+                "checkboxGroup",
+                "radioButtonGroup",
+                "radioBoxGroup"
+              ]
+            },
+            {
+              "id": "secFormsHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Form controls"
+            },
+            {
+              "id": "inputField",
+              "component": "InputField",
+              "type": "email",
+              "label": "Email address",
+              "value": {
+                "path": "/form/email"
+              },
+              "placeholder": "you@example.com",
+              "helperText": "We will send your receipt here.",
+              "required": true,
+              "tooltip": {
+                "title": "Why we ask",
+                "children": "Used for billing only."
+              },
+              "action": {
+                "children": "Edit",
+                "kind": "inline",
+                "href": "#"
+              },
+              "width": "360px",
+              "name": "email"
+            },
+            {
+              "id": "textArea",
+              "component": "TextArea",
+              "label": "Notes",
+              "placeholder": "Anything else?",
+              "value": {
+                "path": "/form/notes"
+              },
+              "rows": 3,
+              "maxLength": 200,
+              "showCharacterCount": true,
+              "helperText": "Optional.",
+              "width": "360px",
+              "name": "notes"
+            },
+            {
+              "id": "checkboxGroup",
+              "component": "CheckboxGroup",
+              "label": "Add-ons",
+              "orientation": "vertical",
+              "containerBackground": "transparent",
+              "name": "addons",
+              "value": {
+                "path": "/form/addons"
+              },
+              "children": [
+                "cbMusic",
+                "cbCloud"
+              ]
+            },
+            {
+              "id": "cbMusic",
+              "component": "Checkbox",
+              "label": "Music Unlimited",
+              "sublabel": "+$10/mo",
+              "value": "music"
+            },
+            {
+              "id": "cbCloud",
+              "component": "Checkbox",
+              "label": "Cloud storage",
+              "sublabel": "+$5/mo",
+              "value": "cloud"
+            },
+            {
+              "id": "radioButtonGroup",
+              "component": "RadioButtonGroup",
+              "label": "Billing cycle",
+              "orientation": "horizontal",
+              "value": {
+                "path": "/form/cycle"
+              },
+              "name": "cycle",
+              "children": [
+                "rbMonthly",
+                "rbAnnual"
+              ]
+            },
+            {
+              "id": "rbMonthly",
+              "component": "RadioButton",
+              "label": "Monthly",
+              "sublabel": "$30/mo",
+              "value": "monthly"
+            },
+            {
+              "id": "rbAnnual",
+              "component": "RadioButton",
+              "label": "Annual",
+              "sublabel": "$324/yr",
+              "value": "annual"
+            },
+            {
+              "id": "radioBoxGroup",
+              "component": "RadioBoxGroup",
+              "orientation": "horizontal",
+              "value": {
+                "path": "/form/storage"
+              },
+              "name": "storage",
+              "ariaLabel": "Device storage",
+              "children": [
+                "rbxSmall",
+                "rbxLarge"
+              ]
+            },
+            {
+              "id": "rbxSmall",
+              "component": "RadioBox",
+              "label": "128 GB",
+              "sublabel": "Included",
+              "sublabelRight": "$0",
+              "value": "128"
+            },
+            {
+              "id": "rbxLarge",
+              "component": "RadioBox",
+              "label": "256 GB",
+              "sublabel": "Most popular",
+              "sublabelRight": "+$100",
+              "value": "256"
+            },
+            {
+              "id": "secLists",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secListsHeading",
+                "listGroup"
+              ]
+            },
+            {
+              "id": "secListsHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Lists"
+            },
+            {
+              "id": "listGroup",
+              "component": "ListGroup",
+              "topLine": true,
+              "bottomLine": true,
+              "width": "100%",
+              "children": [
+                "lgiPlan",
+                "lgiPaperless",
+                "lgiAutopay",
+                "lgiManage"
+              ]
+            },
+            {
+              "id": "lgiPlan",
+              "component": "ListGroupItem",
+              "title": "Plan",
+              "subtitle": {
+                "path": "/tile/title"
+              },
+              "subtitleRight": {
+                "path": "/page/price"
+              },
+              "actionElement": "icon",
+              "href": "#",
+              "actionAriaLabel": "Change plan",
+              "descriptiveIcon": "credit-card",
+              "actionIcon": "chevron-right"
+            },
+            {
+              "id": "lgiPaperless",
+              "component": "ListGroupItem",
+              "title": "Paperless billing",
+              "subtitle": "Email receipts only",
+              "actionElement": "toggle",
+              "toggle": {
+                "checked": {
+                  "path": "/prefs/paperless"
+                },
+                "ariaLabel": "Paperless billing"
+              }
+            },
+            {
+              "id": "lgiAutopay",
+              "component": "ListGroupItem",
+              "title": "Autopay discount",
+              "subtitle": "Save $10/mo",
+              "actionElement": "checkbox",
+              "checkbox": {
+                "value": "autopay",
+                "checked": {
+                  "path": "/prefs/autopay"
+                },
+                "label": "Enroll in autopay"
+              }
+            },
+            {
+              "id": "lgiManage",
+              "component": "ListGroupItem",
+              "title": "Manage add-ons",
+              "subtitle": "3 active",
+              "actionElement": "textLink",
+              "textLink": {
+                "children": "Manage",
+                "kind": "standalone",
+                "href": "#"
+              }
+            },
+            {
+              "id": "secFeedback",
+              "component": "Stack",
+              "direction": "column",
+              "gap": "12px",
+              "primitive": "section",
+              "children": [
+                "secFeedbackHeading",
+                "notification",
+                "modal"
+              ]
+            },
+            {
+              "id": "secFeedbackHeading",
+              "component": "Text",
+              "kind": "title",
+              "size": "2xsmall",
+              "bold": true,
+              "children": "Notification and Modal"
+            },
+            {
+              "id": "notification",
+              "component": "Notification",
+              "kind": "success",
+              "title": "Change saved",
+              "orientation": "vertical",
+              "inline": true,
+              "role": "status",
+              "icon": "check",
+              "children": [
+                "notifBody"
+              ],
+              "buttonGroup": {
+                "alignment": "left",
+                "size": "small",
+                "items": [
+                  {
+                    "kind": "textLink",
+                    "children": "Undo",
+                    "href": "#"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "notifBody",
+              "component": "Text",
+              "kind": "body",
+              "size": "small",
+              "children": "Your plan update is live on all 3 pages."
+            },
+            {
+              "id": "modal",
+              "component": "Modal",
+              "opened": {
+                "path": "/ui/modalOpen"
+              },
+              "titleLockup": {
+                "title": {
+                  "children": "Confirm change"
+                },
+                "subtitle": {
+                  "children": "This updates every page the tile appears on."
+                }
+              },
+              "children": [
+                "modalBody"
+              ],
+              "width": "480px",
+              "showCloseButton": true,
+              "closeButtonLabel": "Close",
+              "colorMode": "light",
+              "buttonGroup": {
+                "alignment": "right",
+                "size": "large",
+                "items": [
+                  {
+                    "kind": "primary",
+                    "children": "Confirm"
+                  },
+                  {
+                    "kind": "secondary",
+                    "children": "Cancel"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "modalBody",
+              "component": "Text",
+              "kind": "body",
+              "size": "large",
+              "children": "The tile will update in PDP, AAL and Order Summary."
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

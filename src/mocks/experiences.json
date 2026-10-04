@@ -16,5 +16,11 @@
     "name": "Order Summary",
     "description": "The Order Summary tile.",
     "compositionId": "order-summary-tile"
+  },
+  {
+    "id": "catalog-showcase",
+    "name": "Catalog Showcase",
+    "description": "Every component in the VDS catalog, rendered once. For testing A2UI generation and rendering.",
+    "compositionId": "catalog-showcase-tile"
   }
 ]

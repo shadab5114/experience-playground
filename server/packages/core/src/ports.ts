@@ -38,7 +38,17 @@ export interface CatalogSource {
 }
 
 export interface GuidelineSource {
-  search(q: { component: string; topic?: string }): Promise<{ sourceId: string; text: string }[]>;
+  // query: a question built from what the generator needs to know, never the user's words.
+  // components: the components the question is about; empty means any.
+  search(q: { query: string; components: string[] }): Promise<{ sourceId: string; text: string }[]>;
+}
+
+export interface CompositionCandidate {
+  compositionId: string;
+  name: string;
+  family: string;
+  description: string;
+  type: string;
 }
 
 export interface CompositionStore {
@@ -47,6 +57,8 @@ export interface CompositionStore {
   // null when the composition does not exist.
   get(compositionId: string): Promise<CompositionDetail | null>;
   placements(compositionId: string): Promise<PlacementView[]>;
+  // Compositions whose family, name and description together contain every word of the text.
+  search(text: string): Promise<CompositionCandidate[]>;
 }
 
 export interface ChatMessage {
@@ -67,6 +79,12 @@ export interface ModelClient {
 export interface Logger {
   warn(event: string, fields: Record<string, unknown>): void;
   error(event: string, fields: Record<string, unknown>): void;
+}
+
+// One run per thread at a time. tryAcquire returns null when another run holds the
+// thread; release() frees it. The adapter decides how (Postgres advisory lock today).
+export interface ThreadLock {
+  tryAcquire(threadId: string): Promise<{ release(): Promise<void> } | null>;
 }
 
 // The flow that answers one prompt. The LangGraph adapter implements it; the

@@ -1,8 +1,9 @@
 import { createElement, type ReactNode } from 'react'
 import type { A2UIComponentNode, A2UIDocument } from '../types'
 import { resolveSurface, type ResolvedSurface } from '../resolveSurface'
-import { getComponentPropertySchemas, isChildListRef, isComponentKnown, type JsonSchemaLike } from '../schema'
+import { getComponentPropertySchemas, isComponentKnown, isIconNameRef, type JsonSchemaLike } from '../schema'
 import { resolvePath, resolveValue } from './resolveValue'
+import { iconRenderFunction, renderIconElement } from './icons'
 import { getRegisteredComponent } from './registry'
 import { useSurfaceDocument } from './useSurfaceDocument'
 import styles from './A2UIRenderer.module.css'
@@ -41,6 +42,20 @@ export function A2UIRenderer({ document, surfaceId }: A2UIRendererProps) {
   return <>{renderNode('root', surface, surface.dataModel, surfaceId)}</>
 }
 
+/**
+ * pds-core's `IconButton` still takes render *functions* (`renderIcon`,
+ * `renderSelectedIcon`), while the catalog — correctly, since JSON can hold
+ * neither a function nor an element — declares plain `IconName` strings
+ * under `icon`/`selectedIcon`. This table bridges the two names and shapes.
+ *
+ * It is the only place in the renderer that names a specific component's
+ * React API; every other icon slot takes a ReactNode and needs no entry.
+ * Delete an entry once pds-core accepts the catalog's prop directly.
+ */
+const iconRenderPropBridge: Record<string, Record<string, string>> = {
+  IconButton: { icon: 'renderIcon', selectedIcon: 'renderSelectedIcon' },
+}
+
 /** Builds the resolved props for a node (shared by `renderNode` and template instances). */
 function resolveProps(
   node: A2UIComponentNode,
@@ -50,12 +65,28 @@ function resolveProps(
   pageSurfaceId: string | undefined,
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {}
+  // One context for the whole node: `resolveValue` applies these callbacks
+  // at every ChildList/IconName it meets, including ones nested inside a
+  // prop object or array (`Accordion.items[].children`). Nested prop objects
+  // never introduce a new binding context, so closing over this node's
+  // `currentContext` is correct at any depth.
+  const ctx = {
+    dataModel: surface.dataModel,
+    currentContext,
+    renderChildList: (value: unknown) => resolveChildList(value, surface, currentContext, pageSurfaceId),
+    renderIcon: renderIconElement,
+  }
+  const bridge = iconRenderPropBridge[node.component] ?? {}
+
   for (const [key, value] of Object.entries(node)) {
     if (key === 'id' || key === 'component') continue
     const propSchema = propertySchemas[key]
-    props[key] = isChildListRef(propSchema)
-      ? resolveChildList(value, surface, currentContext, pageSurfaceId)
-      : resolveValue(propSchema, value, surface.dataModel, currentContext)
+    const bridgedKey = bridge[key]
+    if (bridgedKey && isIconNameRef(propSchema)) {
+      props[bridgedKey] = resolveValue(propSchema, value, { ...ctx, renderIcon: iconRenderFunction })
+      continue
+    }
+    props[key] = resolveValue(propSchema, value, ctx)
   }
   return props
 }

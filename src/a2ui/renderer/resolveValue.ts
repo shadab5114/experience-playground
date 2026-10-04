@@ -1,4 +1,4 @@
-import { derefSchema, isDynamicStringRef, type JsonSchemaLike } from '../schema'
+import { derefSchema, isChildListRef, isDynamicRef, isIconNameRef, type JsonSchemaLike } from '../schema'
 
 /** Resolves a JSON Pointer (RFC 6901) path like `/plan/name` against a root value. */
 export function getByJsonPointer(root: unknown, pointer: string): unknown {
@@ -32,35 +32,57 @@ function isDataBinding(value: unknown): value is { path: string } {
 }
 
 /**
- * Resolves one prop value against its catalog schema, the composition's
- * data model, and the current binding context. Generic over the whole
- * catalog: it never hardcodes a specific component's prop shape, only the
- * three schema patterns the catalog uses (DynamicString, a nested object
- * $ref, a plain static value).
+ * What a prop resolves against. The two render callbacks are supplied by the
+ * renderer, which owns node lookup and JSX, so this module stays free of
+ * both; without them, those props pass through untouched.
  */
-export function resolveValue(
-  schema: JsonSchemaLike | undefined,
-  value: unknown,
-  dataModel: Record<string, unknown>,
-  currentContext: unknown,
-): unknown {
+export interface ResolveContext {
+  dataModel: Record<string, unknown>
+  /** Binding root for a relative (no leading `/`) path — see `resolvePath`. */
+  currentContext: unknown
+  renderChildList?: (value: unknown) => unknown
+  renderIcon?: (value: unknown) => unknown
+}
+
+/**
+ * Resolves one prop value against its catalog schema and the composition's
+ * data model. Generic over the whole catalog: it never hardcodes a specific
+ * component's prop shape, only the five schema patterns the catalog uses —
+ * a `Dynamic*` binding, a `ChildList`, an `IconName`, a nested object/array
+ * `$ref`, or a plain static value.
+ *
+ * `ChildList` and `IconName` are resolved at *any* depth, not just a node's
+ * own props: `Accordion.items[]` entries carry their own `children`, and
+ * `ListGroupItem.toggle` its own bindings.
+ */
+export function resolveValue(schema: JsonSchemaLike | undefined, value: unknown, ctx: ResolveContext): unknown {
   if (value === undefined) return undefined
 
-  if (isDynamicStringRef(schema)) {
-    if (isDataBinding(value)) return resolvePath(value.path, dataModel, currentContext)
+  if (isDynamicRef(schema)) {
+    if (isDataBinding(value)) return resolvePath(value.path, ctx.dataModel, ctx.currentContext)
     return value
+  }
+
+  if (isChildListRef(schema)) {
+    return ctx.renderChildList ? ctx.renderChildList(value) : value
+  }
+
+  if (isIconNameRef(schema)) {
+    // An icon name may itself be bound, e.g. { path: "/state/statusIcon" }.
+    const name = isDataBinding(value) ? resolvePath(value.path, ctx.dataModel, ctx.currentContext) : value
+    return ctx.renderIcon ? ctx.renderIcon(name) : name
   }
 
   const resolved = derefSchema(schema)
 
   if (resolved?.type === 'array' && Array.isArray(value)) {
-    return value.map((item) => resolveValue(resolved.items, item, dataModel, currentContext))
+    return value.map((item) => resolveValue(resolved.items, item, ctx))
   }
 
   if (resolved?.properties && typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const result: Record<string, unknown> = {}
     for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-      result[key] = resolveValue(resolved.properties[key], nested, dataModel, currentContext)
+      result[key] = resolveValue(resolved.properties[key], nested, ctx)
     }
     return result
   }

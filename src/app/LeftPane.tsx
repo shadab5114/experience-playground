@@ -15,9 +15,11 @@ import styles from './LeftPane.module.css'
 export function LeftPane({ widthPercent }: { widthPercent: number }) {
   const experiences = useTaskStore((s) => s.experiences)
   const task = useTaskStore((s) => s.task)
+  const draft = useTaskStore((s) => s.draft)
   const pickExperience = useTaskStore((s) => s.pickExperience)
   const closeTask = useTaskStore((s) => s.closeTask)
   const sendPrompt = useTaskStore((s) => s.sendPrompt)
+  const sendChatFirstPrompt = useTaskStore((s) => s.sendChatFirstPrompt)
 
   const [pickerOpen, setPickerOpen] = useState(!task)
   const [inputValue, setInputValue] = useState('')
@@ -28,7 +30,8 @@ export function LeftPane({ widthPercent }: { widthPercent: number }) {
     return experiences.filter((e) => e.name.toLowerCase().includes(q))
   }, [experiences, inputValue])
 
-  const showGrid = !task && (pickerOpen || inputValue.trim().length > 0)
+  // While a chat is open the grid is hidden. Typed text shows the grid only when it matches a name.
+  const showGrid = !task && !draft && (inputValue.trim() === '' ? pickerOpen : filteredExperiences.length > 0)
 
   const handlePick = async (id: string) => {
     await pickExperience(id)
@@ -42,14 +45,21 @@ export function LeftPane({ widthPercent }: { widthPercent: number }) {
       await sendPrompt(value)
       return
     }
-    // Search mode: Enter with exactly one match picks it.
+    // Shortcut: Enter with exactly one name match picks it. Anything else is a request to the agent.
     const matches = experiences.filter((e) => e.name.toLowerCase().includes(value.toLowerCase()))
     if (matches.length === 1) {
       await handlePick(matches[0].id)
+      return
     }
+    setInputValue('')
+    await sendChatFirstPrompt(value)
   }
 
-  const placeholder = task ? 'Describe a change…' : 'Start by choosing an experience or type to search by experience name'
+  const placeholder = task
+    ? 'Describe a change…'
+    : draft
+      ? 'Ask for a tile, for example "show me home plan"…'
+      : 'Pick an experience, or type what you want to see, for example "show me home plan"'
 
   return (
     <div className={styles.pane} style={{ width: `${widthPercent}%` }}>
@@ -68,13 +78,13 @@ export function LeftPane({ widthPercent }: { widthPercent: number }) {
 
       {showGrid && <ExperienceTileGrid experiences={filteredExperiences} onPick={(id) => void handlePick(id)} />}
 
-      <ChatThread messages={task?.messages ?? []} onChip={(text) => void sendPrompt(text)} />
+      <ChatThread messages={task?.messages ?? draft?.messages ?? []} onChip={(text) => void (task ? sendPrompt(text) : sendChatFirstPrompt(text))} />
 
       <ChatInput
         value={inputValue}
         onChange={setInputValue}
         onSubmit={(v) => void handleSubmit(v)}
-        disabled={task?.agentStatus === 'working'}
+        disabled={task?.agentStatus === 'working' || draft?.agentStatus === 'working'}
         placeholder={placeholder}
       />
     </div>

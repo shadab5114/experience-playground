@@ -80,7 +80,20 @@ interface ModelClient {
 }
 
 // Thread memory uses LangGraph's own checkpointer interface, backed by Postgres.
+// It is imported only by adapters/langgraph; the core never sees it.
+
+interface AgentEngine {
+  // The flow that answers one prompt. adapters/langgraph implements it.
+  run(input: { request: AgentRequest; threadId: string }, signal?: AbortSignal): AsyncIterable<AgentEvent>;
+}
+
+interface ThreadLock {
+  // Null when another run already holds this thread. The lock is released by calling release().
+  tryAcquire(threadId: string): Promise<{ release(): Promise<void> } | null>;
+}
 ```
+
+Where the graph lives: LangGraph is not imported by `packages/core`. The core holds the node functions, routing, state and the `AgentEngine` port. `adapters/langgraph` builds the `StateGraph`, attaches the Postgres checkpointer and implements `AgentEngine`. The core's import rule test enforces this.
 
 The validator follows the same split: the engine (envelope, structure and scope checks, plus the code that runs catalog and rule checks) lives in the core; the catalog and rules it checks against come from the pack.
 
@@ -279,29 +292,27 @@ Every path ends at respond, which sends exactly one final event. Edits and quest
 
 ### Wiring
 
+The node functions and routing live in `packages/core/src/agent/`. The graph is assembled in `adapters/langgraph`:
+
 ```ts
-const graph = new StateGraph(AgentState)
-  .addNode("route", route)
-  .addNode("gather", gather)
-  .addNode("generate", generate)
-  .addNode("validate", validate)
-  .addNode("repair", repair)
-  .addNode("respond", respond)
-  .addEdge(START, "route")
-  .addConditionalEdges("route", (s) =>
-    s.route === "edit" || s.route === "ask" ? "gather" : "respond")
-  .addConditionalEdges("gather", (s) => (s.route === "ask" ? "respond" : "generate"))
-  .addConditionalEdges("generate", (s) => (s.refusal ? "respond" : "validate"))
-  .addConditionalEdges("validate", (s) =>
-    s.validationErrors.length === 0 ? "respond"
-    : s.repairAttempts < 2 ? "repair"
-    : "respond")
+// adapters/langgraph/src/index.ts
+const graph = new StateGraph(GraphState)
+  .addNode("classify", nodes.route)   // named "classify": a node cannot share a state channel's name ("route")
+  .addNode("gather", nodes.gather)
+  .addNode("generate", nodes.generate)
+  .addNode("validate", nodes.validate)
+  .addNode("repair", nodes.repair)
+  .addNode("respond", nodes.respond)
+  .addEdge(START, "classify")
+  .addConditionalEdges("classify", afterRoute)     // core/src/agent/routing.ts
+  .addConditionalEdges("gather", afterGather)
+  .addConditionalEdges("generate", afterGenerate)
+  .addConditionalEdges("validate", afterValidate)  // repair at most MAX_REPAIR_ATTEMPTS (2) times
   .addEdge("repair", "validate")
-  .addEdge("respond", END)
-  .compile({ checkpointer });
+  .addEdge("respond", END);
 ```
 
-The whole flow fits on one screen, and every branch is a plain function you can unit-test without a model.
+Status events keep the step ids from the core (`route`, not `classify`), so the chat labels don't change. The routing functions are plain code, so each branch is unit-tested without a model.
 
 ## State and persistence
 
@@ -346,7 +357,8 @@ Only short summaries of results go into messages, not whole A2UI documents. That
 ### Checkpointer
 
 - Postgres is set up in B0 for compositions, so the graph uses the Postgres checkpointer from its first run in B2. There is no in-memory stage to migrate away from.
-- The checkpointer creates its own tables; the setup reuses the configuration from the existing backend.
+- The checkpointer is `@langchain/langgraph-checkpoint-postgres`, created in `adapters/langgraph`. Its setup call creates its own tables (`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`).
+- One run per thread at a time. `ThreadLock` is a Postgres advisory lock: `pg_try_advisory_lock` on a hash of the thread id, held on a connection checked out for the whole run and released in `finally`. A second prompt on a busy thread gets 409. The lock uses its own small pool (`RUN_LOCK_POOL_SIZE`), so long runs cannot starve the composition reads. Different threads run in parallel.
 - B4 adds the thread lifecycle: `DELETE /v1/threads/:threadId` and a cleanup job for threads idle 24 hours.
 
 ## Data model (Postgres)
@@ -595,17 +607,18 @@ experience-agent/
   packages/
     contract/                     # AgentRequest, AgentEvent, composition types (Zod); shared with the UI
     core/                         # no vendor, database or design system code
-      src/ports.ts                # CatalogSource, GuidelineSource, CompositionStore, ModelClient
+      src/ports.ts                # CatalogSource, GuidelineSource, CompositionStore, ModelClient, AgentEngine, ThreadLock
       src/runAgent.ts             # the one function both doors call
-      src/graph/                  # state.ts, graph.ts, labels.ts, nodes/*
+      src/agent/                  # nodes.ts, state.ts, routing.ts, schemas.ts
+      src/graph/labels.ts         # status labels
       src/validator/              # engine: five layers
     adapters/
-      postgres/                   # CompositionStore (all SQL lives here)
+      postgres/                   # CompositionStore, ThreadLock (all SQL lives here)
         migrations/               # 001_compositions.sql, 002_placements.sql, ...
         seed.ts                   # upserts a pack's seed data
+      langgraph/                  # StateGraph wiring, AgentEngine, Postgres checkpointer
       anthropic/                  # ModelClient (base URL + key from config)
-      rag/                        # GuidelineSource for your RAG endpoint
-      catalog-file/               # CatalogSource reading a design system pack from disk
+      guidelines/                 # GuidelineSource: file stub now, RAG endpoint later
   ds-packs/
     vds/                          # pack.json, catalog.json, rules.json, prompts/, seed/, golden/
   apps/
@@ -652,12 +665,14 @@ Seven building blocks, each usable on its own. Lay the pipe before adding the br
 
 ### B3 — Repair, refusal, scope
 
-- [ ] Repair loop, at most 2 attempts, then an `error` event
-- [ ] Refusals that cite the guideline, with alternatives checked against the catalog and rules
-- [ ] `ask` route: `gather` queries Postgres and `respond` sends an `answer` with references
-- [ ] Scope route for other experiences and page parts
-- [ ] Cancellation on disconnect and HTTP 409 for overlapping prompts
-- [ ] All six golden scenarios pass, plus one "which variants exist?" question
+- [x] Repair loop, at most 2 attempts, then an `error` event (tested in the graph tests)
+- [ ] Refusals that cite the guideline, with alternatives checked against the catalog and rules (the refusal path works; the citation and alternative checks are not built yet)
+- [ ] `ask` route: `gather` queries Postgres and `respond` sends an `answer` with references (`ask` currently sends a non-retryable error)
+- [x] Scope route for other experiences and page parts (golden "Change the PDP header")
+- [ ] Cancellation on disconnect (the signal is passed through and the thread lock is released in `finally`; no test yet)
+- [x] HTTP 409 for overlapping prompts on one thread, with a Postgres advisory lock on its own pool; different threads run in parallel
+- [ ] All six golden scenarios pass, plus one "which variants exist?" question (four goldens exist; the off-brand refusal and the variants question are not built)
+- [x] Opt-in live test: `LIVE_MODEL_TESTS=1` sends the golden prompts to the real model and checks the outcome type and the validator, not the JSON
 
 ### B4 — Thread lifecycle
 
