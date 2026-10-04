@@ -6,7 +6,6 @@ import type { A2UIDocument } from '../../a2ui/types'
 const { authoring, repo } = vi.hoisted(() => ({
   authoring: {
     listCompositions: vi.fn(),
-    listFlows: vi.fn(),
     listPageTemplates: vi.fn(),
     listVersions: vi.fn(),
     validate: vi.fn(),
@@ -47,14 +46,12 @@ beforeEach(() => {
     loading: false,
     error: null,
     compositions: [record],
-    flows: [],
     pages: [],
     editor: null,
     pendingDelete: null,
     notice: null,
   })
   authoring.listCompositions.mockResolvedValue([record])
-  authoring.listFlows.mockResolvedValue([])
   authoring.listPageTemplates.mockResolvedValue([])
   authoring.listVersions.mockResolvedValue([])
   authoring.validate.mockResolvedValue({ errors: [], warnings: [] })

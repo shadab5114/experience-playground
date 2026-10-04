@@ -27,11 +27,8 @@ const SampleComposition = z.object({
   a2ui: A2UIDocumentSchema,
 });
 
-const SampleFlow = z.object({ id: z.string(), name: z.string() });
-
 const SamplePageTemplate = z.object({
   id: z.string(),
-  flowId: z.string(),
   name: z.string(),
   description: z.string().optional(),
   agentRules: z.string().optional(),
@@ -50,7 +47,6 @@ const SamplePlacement = z.object({
 // Rows actually inserted. A second import of the same pack reports all zeroes.
 export interface ImportCounts {
   compositions: number;
-  flows: number;
   pageTemplates: number;
   placements: number;
 }
@@ -64,34 +60,23 @@ export async function importSamples(pool: pg.Pool, packDir: string): Promise<Imp
   const pack = await readJson(join(packDir, "pack.json"), PackFile);
   const seedDir = join(packDir, "seed");
   const compositions = await readJson(join(seedDir, "compositions.json"), z.array(SampleComposition));
-  const flows = await readJson(join(seedDir, "flows.json"), z.array(SampleFlow));
   const pageTemplates = await readJson(join(seedDir, "page-templates.json"), z.array(SamplePageTemplate));
   const placements = await readJson(join(seedDir, "placements.json"), z.array(SamplePlacement));
 
-  const counts: ImportCounts = { compositions: 0, flows: 0, pageTemplates: 0, placements: 0 };
+  const counts: ImportCounts = { compositions: 0, pageTemplates: 0, placements: 0 };
   const client = await pool.connect();
   try {
     await client.query("begin");
 
-    // Parents before children: flows, pages, compositions, then placements.
-    for (const f of flows) {
-      const { rowCount } = await client.query(
-        `insert into flows (id, ds_pack, name) values ($1, $2, $3)
-         on conflict (id) do nothing`,
-        [f.id, pack.name, f.name],
-      );
-      counts.flows += rowCount ?? 0;
-    }
-
+    // Parents before children: pages and compositions, then placements.
     for (const p of pageTemplates) {
       const { rowCount } = await client.query(
         `insert into page_templates
-           (id, flow_id, ds_pack, name, description, agent_rules, slots, a2ui, origin)
-         values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'sample')
+           (id, ds_pack, name, description, agent_rules, slots, a2ui, origin)
+         values ($1, $2, $3, $4, $5, $6, $7::jsonb, 'sample')
          on conflict (id) do nothing`,
         [
           p.id,
-          p.flowId,
           pack.name,
           p.name,
           p.description ?? null,

@@ -22,7 +22,6 @@ const UNASSIGNED = ''
  */
 export function MappingsSection({ pageTemplateId }: { pageTemplateId?: string }) {
   const pages = useStudioStore((s) => s.pages)
-  const flows = useStudioStore((s) => s.flows)
   const compositions = useStudioStore((s) => s.compositions)
   const mappingsPageId = useStudioStore((s) => s.mappingsPageId)
   const placements = useStudioStore((s) => s.placements)
@@ -82,11 +81,7 @@ export function MappingsSection({ pageTemplateId }: { pageTemplateId?: string })
             />
           )}
         </Field>
-        {page && (
-          <span className={styles.flowNote}>
-            Flow: {flows.find((f) => f.flowId === page.flowId)?.name ?? page.flowId}
-          </span>
-        )}
+        {page && <span className={styles.flowNote}>{page.slots.length} slot(s)</span>}
       </div>
 
       {page && page.slots.length === 0 && (

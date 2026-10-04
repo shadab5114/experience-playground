@@ -21,11 +21,10 @@ export interface PageTemplate {
   slots: { id: string; description: string }[]
 }
 
-/** Where a composition appears across flows/pages. Drives the Impacts view (M5). */
+/** A page a composition appears on. Drives the Impacts view (M5), one tab per page. */
 export interface Placement {
-  flowId: string
-  flowName: string
   pageTemplateId: string
+  pageName: string
   slotId: string
   variant?: string
 }
@@ -70,6 +69,7 @@ export interface TaskState {
   baselineVersion: number
   view: {
     mode: 'preview' | 'json' | 'impacts'
+    /** The pageTemplateId of the open Impacts tab. */
     impactTab?: string
     device: 'mobile' | 'desktop'
   }

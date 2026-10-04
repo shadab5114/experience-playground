@@ -340,7 +340,10 @@ interface MockScenario {
 
 ### Mock VDS rules
 
-A small `vds-rules.json` lists what the mock refusal logic checks: allowed color tokens with display names, allowed badge sizes, and allowed typography styles. Refusal alternatives come from this file, so they are always real VDS options.
+As built, each scenario file carries its own `outcome.alternatives`, so refusal
+alternatives live next to the refusal that offers them. The planned shared
+`vds-rules.json` was not needed; the backend's equivalent is
+`server/ds-packs/vds/rules.json`, which the validator enforces.
 
 ### Mock pages
 
@@ -400,7 +403,6 @@ experience-playground/
       pages/*.json
       mappings.json
       scenarios/*.json
-      vds-rules.json
     dev/DevPanel.tsx                # Dev builds only
   tests/e2e/                        # Playwright specs
 ```

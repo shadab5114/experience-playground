@@ -4,7 +4,6 @@ import type {
   CompositionRecord,
   CompositionVersionSummary,
   DeleteImpact,
-  FlowRecord,
   PageTemplateRecord,
   PlacementRecord,
   ValidationReport,
@@ -17,7 +16,9 @@ import type { AgentEngine } from "@experience-agent/core";
 import { createApp } from "./app";
 import { withListCache } from "../cache";
 
-const CATALOG_ID = "https://pdesign.dev/catalog/v1/catalog.json";
+// Derived from the pack, not written out: these documents go through the real
+// validator, which rejects any catalogId but the pack's own.
+const CATALOG_ID = createVdsCatalog().catalogId;
 
 // A long cache TTL on purpose: it is what makes a missing invalidate() visible.
 const LIST_TTL_MS = 60_000;
@@ -221,28 +222,10 @@ describe("composition history and delete impact", () => {
   });
 });
 
-describe("flows", () => {
-  test("lists the sample flows and creates a new one", async () => {
-    expect((await json<FlowRecord[]>(await request("/flows", "GET"))).map((f) => f.flowId)).toEqual([
-      "aal",
-      "order-summary",
-      "pdp",
-    ]);
-    const res = await request("/flows/studio-flow", "PUT", { flowId: "studio-flow", name: "Studio Flow" });
-    expect(await json<FlowRecord>(res)).toEqual({ flowId: "studio-flow", name: "Studio Flow" });
-  });
-
-  test("rejects an id that would make a surface id ambiguous", async () => {
-    const res = await request("/flows/bad", "PUT", { flowId: "page:bad", name: "Bad" });
-    expect(res.status).toBe(400);
-  });
-});
-
 describe("PUT /v1/authoring/page-templates/:id", () => {
   test("derives slots from the document's Slot nodes", async () => {
     const res = await request("/page-templates/studio-page", "PUT", {
       pageTemplateId: "studio-page",
-      flowId: "studio-flow",
       name: "Studio Page",
       description: "A page authored in the Studio.",
       a2ui: pageDoc,
@@ -251,19 +234,6 @@ describe("PUT /v1/authoring/page-templates/:id", () => {
     const saved = await json<{ record: PageTemplateRecord }>(res);
     expect(saved.record.slots).toEqual(["plan-summary"]);
     expect(saved.record.origin).toBe("authored");
-  });
-
-  test("an unknown flow is the caller's mistake, not a 500", async () => {
-    const res = await request("/page-templates/studio-page", "PUT", {
-      pageTemplateId: "studio-page",
-      flowId: "no-such-flow",
-      name: "Studio Page",
-      a2ui: pageDoc,
-    });
-    expect(res.status).toBe(400);
-    const body = await json<{ error: string; flows: string[] }>(res);
-    expect(body.error).toMatch(/Unknown flow/);
-    expect(body.flows).toContain("pdp");
   });
 
   test("lists pages with samples still marked as samples", async () => {
@@ -354,7 +324,6 @@ describe("POST /v1/authoring/samples/import", () => {
   test("adds nothing when the samples are all present", async () => {
     expect(await json<Record<string, number>>(await request("/samples/import", "POST"))).toEqual({
       compositions: 0,
-      flows: 0,
       pageTemplates: 0,
       placements: 0,
     });

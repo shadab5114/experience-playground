@@ -30,9 +30,9 @@ export const CompositionDetail = CompositionSummary.extend({
 });
 export type CompositionDetail = z.infer<typeof CompositionDetail>;
 
+// One page a composition appears on. Tabs in the Impacts view are per page:
+// there is no grouping above a page any more.
 export const PlacementView = z.object({
-  flowId: z.string(),
-  flowName: z.string(),
   pageTemplateId: z.string(),
   pageName: z.string(),
   slotId: z.string(),

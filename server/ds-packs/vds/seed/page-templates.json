@@ -1,7 +1,6 @@
 [
   {
     "id": "aal-mock",
-    "flowId": "aal",
     "name": "AAL",
     "slots": [
       "plan-summary"
@@ -98,7 +97,6 @@
   },
   {
     "id": "order-summary-mock",
-    "flowId": "order-summary",
     "name": "Order Summary",
     "slots": [
       "plan-summary"
@@ -195,7 +193,6 @@
   },
   {
     "id": "pdp-mock",
-    "flowId": "pdp",
     "name": "PDP",
     "slots": [
       "plan-summary"

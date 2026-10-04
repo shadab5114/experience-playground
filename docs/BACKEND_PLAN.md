@@ -226,9 +226,7 @@ interface CompositionDetail extends CompositionSummary {
 
 // GET /v1/compositions/:compositionId/placements  (tab order)
 interface PlacementView {
-  flowId: string;          // "pdp" (the impacts tab key)
-  flowName: string;        // "PDP"
-  pageTemplateId: string;  // "pdp-mock"
+  pageTemplateId: string;  // "pdp-mock" (the impacts tab key)
   pageName: string;
   slotId: string;
   variant?: string;
@@ -348,7 +346,7 @@ const AgentState = Annotation.Root({
 | Data | Where | Lifetime |
 | --- | --- | --- |
 | Conversation messages (prompts and short summaries of results) | Postgres, through the LangGraph checkpointer, keyed by `threadId` | Until the task closes, or 24 hours idle |
-| Compositions, page templates, flows, placements | Postgres tables (see Data model) | Permanent; seeded from the design system pack |
+| Compositions, page templates, placements | Postgres tables (see Data model) | Permanent; seeded from the design system pack |
 | Work-in-progress A2UI during a task | Not stored by the backend | The UI sends the current one each time |
 | Versions and saves | UI `localStorage` for now; the `composition_versions` table is ready for server saves later | As defined in the playground plan |
 
@@ -363,7 +361,7 @@ Only short summaries of results go into messages, not whole A2UI documents. That
 
 ## Data model (Postgres)
 
-One Postgres database holds compositions, page templates, flows, placements, saved versions and thread memory. Usage guidelines stay in your RAG app's own store.
+One Postgres database holds compositions, page templates, placements, saved versions and thread memory. Usage guidelines stay in your RAG app's own store.
 
 Think of a filing cabinet with labeled drawers: JSON columns hold whole A2UI documents, like files in a folder, and plain tables hold the links between them, like an index card that says which tile sits on which page.
 
@@ -396,15 +394,8 @@ create table composition_versions (
   primary key (composition_id, version)
 );
 
-create table flows (
-  id       text primary key,                       -- 'pdp'
-  ds_pack  text not null,
-  name     text not null                           -- 'PDP'
-);
-
 create table page_templates (
   id       text primary key,                       -- 'pdp-mock'
-  flow_id  text not null references flows(id),
   ds_pack  text not null,
   name     text not null,
   slots    text[] not null,                        -- slot ids present in the page
@@ -441,10 +432,9 @@ where ds_pack = $1
 order by name;
 
 -- View Impacts: every page a composition appears on, in tab order
-select f.name as flow, pt.id, pt.name, pt.a2ui, p.slot_id, p.variant
+select pt.id, pt.name, pt.a2ui, p.slot_id, p.variant
 from placements p
 join page_templates pt on pt.id = p.page_template_id
-join flows f on f.id = pt.flow_id
 where p.composition_id = $1
 order by p.position;
 
@@ -456,7 +446,7 @@ select id, name, tags from compositions where ds_pack = $1 and type = $2;
 
 - Schema changes are plain numbered SQL files in `adapters/postgres/migrations`, applied by a small script at startup and in CI. No ORM.
 - The checkpoint tables are created by the LangGraph Postgres checkpointer's own setup call.
-- Each design system pack ships its starting data in `ds-packs/<name>/seed/` (compositions, flows, page templates, placements as JSON). A seed script upserts them, so it is safe to run again. A new design system brings its own seed.
+- Each design system pack ships its starting data in `ds-packs/<name>/seed/` (compositions, page templates, placements as JSON). A seed script upserts them, so it is safe to run again. A new design system brings its own seed.
 - Local development and tests use Postgres in Docker Compose.
 - All SQL lives in `adapters/postgres`. The core never sees SQL; it only calls the store ports.
 
@@ -569,8 +559,8 @@ The same stack as the existing backend, minus everything the foundation doesn't 
 
 | Concern | Choice | Notes |
 | --- | --- | --- |
-| Runtime | Bun + TypeScript (strict), workspaces monorepo | Same as the existing backend |
-| HTTP and SSE | Hono | Small, built-in SSE helper, runs on Bun |
+| Runtime | Node LTS + TypeScript (strict, run through `tsx`), npm workspaces monorepo | As built. Bun-only APIs are avoided on purpose |
+| HTTP and SSE | Hono | Small, built-in SSE helper, runtime-agnostic |
 | A2A | Official A2A JavaScript SDK (`@a2a-js/sdk`) | Protocol layer only; agent logic stays in the core |
 | Agent graph | LangGraph JS | Explicit nodes and edges |
 | Schemas | Zod | Request validation, catalog schemas, model structured output |
@@ -582,7 +572,7 @@ The same stack as the existing backend, minus everything the foundation doesn't 
 | Guidelines | RAG endpoint adapter | Responses cached per thread |
 | Local development | Docker Compose with Postgres | Same setup runs the tests |
 | Observability | OpenTelemetry + LangSmith | Added in B5 |
-| Tests | `bun test` | Unit tests plus each pack's golden scenarios |
+| Tests | Vitest (`npm run server:test`) | Unit tests plus each pack's golden scenarios |
 
 Not in the foundation: BullMQ, a database for compositions, auth beyond a shared key.
 
@@ -594,7 +584,7 @@ The A2UI v0.9 wire types (`A2UIDocument`, `A2UIMessage`, `A2UIComponentNode` and
 
 **Contract changes so far (2026-10-03):**
 - `A2UIDocument.meta` is optional. Documents without a header are valid; the playground's type already allowed this.
-- `PlacementView` has `flowId`, the key for the impacts tabs.
+- `PlacementView` is keyed by `pageTemplateId`, which is also the impacts tab key. (Flows were removed in migration `004`; the model is Page -> Compositions.)
 - `AgentRequest` has no `threadId`. The thread id is the URL path segment, and the playground passes it as the first argument to `sendPrompt(threadId, request, signal?)`.
 
 ### Repo structure
@@ -642,9 +632,9 @@ Seven building blocks, each usable on its own. Lay the pipe before adding the br
 
 - [ ] Monorepo split from day one: `contract`, `core`, `adapters`, `ds-packs/vds`, `apps/service`
 - [ ] A lint rule stops `core` from importing any adapter, pack or vendor SDK
-- [ ] Postgres in Docker Compose; migrations create the five tables and indexes from the Data model section
-- [ ] Seed script loads the VDS pack's compositions, flows, page templates and placements; running it twice changes nothing
-- [ ] Bun + Hono server with `/health` (checks the database)
+- [ ] Postgres in Docker Compose; migrations create the four content tables and indexes from the Data model section
+- [ ] Seed script loads the VDS pack's compositions, page templates and placements; running it twice changes nothing
+- [ ] Node + Hono server with `/health` (checks the database)
 - [ ] The three composition endpoints go through the `CompositionStore` port, no model, under 200 ms
 - [ ] `POST /v1/threads/:threadId/prompts` validates the body and streams a scripted sequence (three status steps, then a `result` echoing the input A2UI)
 - [ ] The playground picks a real template, shows the scripted steps, and opens View Impacts from real placements
@@ -705,7 +695,7 @@ Export this doc as Markdown to `docs/PLAN.md`, add the `CLAUDE.md` below, and ru
 ```markdown
 # Experience Agent (backend)
 
-A Bun service that runs a fixed LangGraph flow to edit A2UI compositions
+A Node service that runs a fixed LangGraph flow to edit A2UI compositions
 grounded in a design system. Two front doors share one core: HTTP + SSE for
 the Experience Playground, and A2A for other agents. One Postgres database
 holds compositions, mappings and thread memory. Full plan: docs/PLAN.md.
@@ -767,7 +757,7 @@ Each later block plugs into the foundation without changing the graph's core flo
 ### Open questions
 
 - [ ] Blocks B0: does your org provide a managed Postgres for this, and which version?
-- [ ] Blocks B0: how should compositions be tagged (type, tags, flows) in the seed data?
+- [ ] Blocks B0: how should compositions be tagged (type, tags) in the seed data?
 - [ ] Blocks B1: pin A2UI v0.9.1 or v1.0 RC?
 - [ ] Blocks B2: what does the RAG endpoint accept and return (query in; passages with source ids out)?
 - [ ] Blocks B6: which A2A protocol version do the calling agents speak (v0.3 or v1.0)?

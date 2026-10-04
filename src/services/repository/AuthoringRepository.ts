@@ -3,8 +3,6 @@ import type {
   CompositionRecord,
   CompositionVersionSummary,
   DeleteImpact,
-  FlowInput,
-  FlowRecord,
   PageTemplateInput,
   PageTemplateRecord,
   PlacementInput,
@@ -35,11 +33,6 @@ export interface AuthoringRepository {
   deletePageTemplate(pageTemplateId: string): Promise<void>
   pageTemplateDeleteImpact(pageTemplateId: string): Promise<DeleteImpact>
 
-  listFlows(): Promise<FlowRecord[]>
-  saveFlow(input: FlowInput): Promise<FlowRecord>
-  /** Refused with a message when the flow still has pages; only an unused flow goes. */
-  deleteFlow(flowId: string): Promise<{ ok: true } | { ok: false; message: string }>
-
   placementsForPage(pageTemplateId: string): Promise<PlacementRecord[]>
   setPlacement(input: PlacementInput): Promise<PlacementRecord[]>
   deletePlacement(key: PlacementKey): Promise<void>
@@ -59,7 +52,6 @@ export type SaveResult<T> =
 
 export interface SampleImportCounts {
   compositions: number
-  flows: number
   pageTemplates: number
   placements: number
 }

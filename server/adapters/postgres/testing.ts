@@ -15,6 +15,8 @@ export const VDS_PACK_DIR = join(HERE, "../../ds-packs/vds");
 const OWN_TABLES = [
   "placements",
   "page_templates",
+  // Dropped by 004 but still listed, so resetting a database created before
+  // that migration does not leave the old table behind.
   "flows",
   "composition_versions",
   "compositions",

@@ -6,7 +6,6 @@ import type {
   CompositionRecord,
   CompositionVersionSummary,
   DeleteImpact,
-  FlowRecord,
   PageTemplateInput,
   PageTemplateRecord,
   PlacementInput,
@@ -87,7 +86,6 @@ export interface CompositionForm {
 /** The metadata fields a person types for a page template. `slots` is derived. */
 export interface PageForm {
   pageTemplateId: string
-  flowId: string
   name: string
   description: string
   agentRules: string
@@ -119,7 +117,6 @@ interface StudioStore {
   loading: boolean
   error: string | null
   compositions: CompositionRecord[]
-  flows: FlowRecord[]
   pages: PageTemplateRecord[]
   /** At most one record is open at a time; the Studio is a single-pane editor. */
   editor: StudioEditor | null
@@ -145,8 +142,6 @@ interface StudioStore {
   askDelete(kind: 'composition' | 'page', id: string): Promise<void>
   cancelDelete(): void
   confirmDelete(): Promise<void>
-  saveFlow(flowId: string, name: string): Promise<boolean>
-  deleteFlow(flowId: string): Promise<boolean>
   /** Shows a page's mappings. Falls back to the first page when none is named. */
   selectMappingsPage(pageTemplateId?: string): Promise<void>
   setPlacement(input: PlacementInput): Promise<void>
@@ -166,9 +161,8 @@ const emptyCompositionForm = (type: string): CompositionForm => ({
   tags: [],
 })
 
-const emptyPageForm = (flowId: string): PageForm => ({
+const emptyPageForm = (): PageForm => ({
   pageTemplateId: '',
-  flowId,
   name: '',
   description: '',
   agentRules: '',
@@ -189,7 +183,6 @@ function compositionFormOf(record: CompositionRecord): CompositionForm {
 function pageFormOf(record: PageTemplateRecord): PageForm {
   return {
     pageTemplateId: record.pageTemplateId,
-    flowId: record.flowId,
     name: record.name,
     description: record.description ?? '',
     agentRules: record.agentRules ?? '',
@@ -237,7 +230,6 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
   loading: false,
   error: null,
   compositions: [],
-  flows: [],
   pages: [],
   editor: null,
   pendingDelete: null,
@@ -253,12 +245,8 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
     loadInFlight = (async () => {
       try {
         const api = requireAuthoring()
-        const [compositions, flows, pages] = await Promise.all([
-          api.listCompositions(),
-          api.listFlows(),
-          api.listPageTemplates(),
-        ])
-        set({ compositions, flows, pages, loaded: true, loading: false })
+        const [compositions, pages] = await Promise.all([api.listCompositions(), api.listPageTemplates()])
+        set({ compositions, pages, loaded: true, loading: false })
       } catch (err) {
         set({ error: (err as Error).message, loading: false })
       } finally {
@@ -323,12 +311,9 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
     await get().load()
 
     if (pageTemplateId === NEW_RECORD) {
-      // A page needs a flow (flow_id is a NOT NULL foreign key), so the first
-      // flow is pre-selected rather than leaving an empty select that cannot save.
-      const firstFlow = get().flows[0]?.flowId ?? ''
       set({
         error: null,
-        editor: { kind: 'page', ...coreFor(newPageDocument(), null), form: emptyPageForm(firstFlow) },
+        editor: { kind: 'page', ...coreFor(newPageDocument(), null), form: emptyPageForm() },
       })
       void get().validateNow()
       return
@@ -499,39 +484,6 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
     }
   },
 
-  /** Creates or renames a flow. Returns false when the server refused it. */
-  async saveFlow(flowId: string, name: string) {
-    try {
-      const record = await requireAuthoring().saveFlow({ flowId: flowId.trim(), name: name.trim() })
-      set((state) => ({
-        flows: [...state.flows.filter((f) => f.flowId !== record.flowId), record].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        ),
-        notice: `Saved flow ${record.flowId}`,
-        error: null,
-      }))
-      return true
-    } catch (err) {
-      set({ error: (err as Error).message })
-      return false
-    }
-  },
-
-  /** Only an unused flow can go; the server refuses one that still has pages. */
-  async deleteFlow(flowId: string) {
-    const result = await requireAuthoring().deleteFlow(flowId)
-    if (!result.ok) {
-      set({ error: result.message })
-      return false
-    }
-    set((state) => ({
-      flows: state.flows.filter((f) => f.flowId !== flowId),
-      notice: `Deleted flow ${flowId}`,
-      error: null,
-    }))
-    return true
-  },
-
   async selectMappingsPage(pageTemplateId?: string) {
     await get().load()
     const target = pageTemplateId ?? get().pages[0]?.pageTemplateId
@@ -584,7 +536,7 @@ export const useStudioStore = create<StudioStore>((set, get) => ({
     try {
       const counts = await requireAuthoring().importSamples()
       useTaskStore.getState().invalidateExperiences()
-      const added = counts.compositions + counts.flows + counts.pageTemplates + counts.placements
+      const added = counts.compositions + counts.pageTemplates + counts.placements
       set({ notice: added === 0 ? 'Samples are already present; nothing added.' : `Imported ${added} sample rows.` })
       await get().load(true)
     } catch (err) {
@@ -656,7 +608,6 @@ async function saveComposition(
 async function savePage(editor: PageEditorState, document: A2UIDocument, set: Set): Promise<string | null> {
   const input: PageTemplateInput = {
     pageTemplateId: editor.form.pageTemplateId.trim(),
-    flowId: editor.form.flowId.trim(),
     name: editor.form.name.trim(),
     ...(editor.form.description.trim() ? { description: editor.form.description.trim() } : {}),
     ...(editor.form.agentRules.trim() ? { agentRules: editor.form.agentRules.trim() } : {}),

@@ -3,7 +3,6 @@ import { expect, test } from '@playwright/test'
 // Remote-only, like the other Studio specs: skips itself when no backend answers.
 const API = 'http://localhost:8787'
 const PAGE_ID = 'mappings-page'
-const FLOW_ID = 'mappings-flow'
 
 test.beforeAll(async ({ request }) => {
   const reachable = await request
@@ -15,7 +14,6 @@ test.beforeAll(async ({ request }) => {
 
 const reset = async () => {
   await fetch(`${API}/v1/authoring/page-templates/${PAGE_ID}`, { method: 'DELETE' }).catch(() => undefined)
-  await fetch(`${API}/v1/authoring/flows/${FLOW_ID}`, { method: 'DELETE' }).catch(() => undefined)
 }
 
 test.beforeEach(reset)
@@ -27,12 +25,10 @@ test('mappings: assign a composition to a slot and see it in the Playground impa
 
   // A page with two slots to map into, created over the API so the test is
   // about mappings rather than about the page editor (that is studio-pages).
-  await request.put(`${API}/v1/authoring/flows/${FLOW_ID}`, { data: { flowId: FLOW_ID, name: 'Mappings Flow' } })
   const slot = (id: string, slotId: string) => ({ id, component: 'Slot', slotId })
   await request.put(`${API}/v1/authoring/page-templates/${PAGE_ID}`, {
     data: {
       pageTemplateId: PAGE_ID,
-      flowId: FLOW_ID,
       name: 'Mappings Page',
       a2ui: {
         a2ui: [
@@ -58,7 +54,7 @@ test('mappings: assign a composition to a slot and see it in the Playground impa
 
   // 1. The Mappings section lists the page's slots, both unassigned.
   await page.goto(`/#/studio/mappings/${PAGE_ID}`)
-  await expect(page.getByText('Flow: Mappings Flow')).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'page' })).toHaveValue(PAGE_ID)
   const planSelect = page.getByRole('combobox', { name: 'Composition in plan-summary' })
   await expect(planSelect).toHaveValue('')
   // Nothing placed yet, so the page renders its empty slot placeholders.
@@ -81,12 +77,12 @@ test('mappings: assign a composition to a slot and see it in the Playground impa
   await expect(page.getByRole('textbox', { name: /Variant for basic-plan-tile/ })).toHaveValue('compact')
 
   // 4. The acceptance criterion: the new mapping shows up in the Playground's
-  //    Impacts view, as a tab for the flow, without a restart.
+  //    Impacts view, as a tab for the page, without a restart.
   await page.getByRole('button', { name: 'Playground' }).click()
   await page.getByRole('button', { name: /Basic Plan/ }).first().click()
   await page.getByRole('button', { name: 'View impacts' }).click()
-  await expect(page.getByRole('tab', { name: 'Mappings Flow' })).toBeVisible({ timeout: 10_000 })
-  await page.getByRole('tab', { name: 'Mappings Flow' }).click()
+  await expect(page.getByRole('tab', { name: 'Mappings Page' })).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('tab', { name: 'Mappings Page' }).click()
   await expect(page.getByText('Updated tile').first()).toBeVisible()
 
   // 5. Unassigning removes it again, and the slot goes back to its placeholder.

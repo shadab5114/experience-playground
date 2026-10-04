@@ -178,7 +178,7 @@ export function CompositionEditor({ editor }: { editor: CompositionEditorState }
               {editor.appearsIn.map((placement) => (
                 <div key={`${placement.pageTemplateId}-${placement.slotId}`} className={styles.row}>
                   <span>
-                    {placement.flowName} · {placement.slotId}
+                    {placement.pageName} · {placement.slotId}
                   </span>
                   {placement.variant && <span className={styles.rowMuted}>{placement.variant}</span>}
                 </div>

@@ -46,8 +46,10 @@ export function ImpactsView() {
     return <div className={styles.empty}>This experience isn't mapped to any pages yet.</div>
   }
 
-  const activeFlowId = task.view.impactTab ?? mapping.appearsIn[0].flowId
-  const activePlacement = mapping.appearsIn.find((p) => p.flowId === activeFlowId) ?? mapping.appearsIn[0]
+  // Keyed by page, not by any grouping above it: a composition can appear on
+  // several pages and each needs its own reachable tab.
+  const activePageId = task.view.impactTab ?? mapping.appearsIn[0].pageTemplateId
+  const activePlacement = mapping.appearsIn.find((p) => p.pageTemplateId === activePageId) ?? mapping.appearsIn[0]
   const pageReady = Boolean(pageTemplatesById[activePlacement.pageTemplateId])
   const isMobile = task.view.device === 'mobile'
   const variantClass = activePlacement.variant ? styles[`variant${capitalize(activePlacement.variant)}`] : ''
@@ -57,14 +59,14 @@ export function ImpactsView() {
       <div className={styles.tabs} role="tablist">
         {mapping.appearsIn.map((placement) => (
           <button
-            key={placement.flowId}
+            key={`${placement.pageTemplateId}:${placement.slotId}`}
             type="button"
             role="tab"
-            aria-selected={placement.flowId === activeFlowId}
-            className={placement.flowId === activeFlowId ? styles.tabActive : styles.tab}
-            onClick={() => setImpactTab(placement.flowId)}
+            aria-selected={placement.pageTemplateId === activePageId}
+            className={placement.pageTemplateId === activePageId ? styles.tabActive : styles.tab}
+            onClick={() => setImpactTab(placement.pageTemplateId)}
           >
-            {placement.flowName}
+            {placement.pageName}
           </button>
         ))}
       </div>

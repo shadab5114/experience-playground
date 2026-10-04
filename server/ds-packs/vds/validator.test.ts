@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
@@ -7,6 +8,12 @@ import { createVdsCatalog } from "./catalog";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const catalog = createVdsCatalog();
+
+// The catalog package this pack is built on. Written once here; everywhere else
+// reads it out of pack.json.
+const CATALOG_PACKAGE = (
+  JSON.parse(readFileSync(join(HERE, "pack.json"), "utf8")) as { catalogPackage: { name: string } }
+).catalogPackage.name;
 
 type Expected = { layer: string; code: string; componentId?: string };
 interface Fixture {
@@ -35,7 +42,6 @@ describe("validator fixtures", () => {
   test("there are fixtures for every group", () => {
     const names = fixtures.map((f) => f.file);
     expect(names.filter((n) => n.startsWith("ref-"))).toHaveLength(14);
-    expect(names.filter((n) => n.startsWith("seed-"))).toHaveLength(6);
     expect(names.filter((n) => n.startsWith("ds-10"))).toHaveLength(5);
   });
 
@@ -50,10 +56,43 @@ describe("validator fixtures", () => {
   }
 });
 
+/**
+ * Everything the pack seeds must validate clean. These read `seed/*.json`
+ * directly instead of keeping copies under `golden/validator`: a copy has to be
+ * re-synced by hand every time a seed document changes, and a stale copy passes
+ * while the thing actually seeded is broken.
+ */
+describe("seeded documents validate clean", () => {
+  const seed = <T,>(file: string): T[] => JSON.parse(readFileSync(join(HERE, "seed", file), "utf8")) as T[];
+  const compositions = seed<{ id: string; a2ui: unknown }>("compositions.json");
+  const pages = seed<{ id: string; a2ui: unknown }>("page-templates.json");
+
+  test("the seed files are not empty", () => {
+    expect(compositions.length).toBeGreaterThan(0);
+    expect(pages.length).toBeGreaterThan(0);
+  });
+
+  for (const { id, a2ui } of compositions) {
+    test(`composition ${id}`, () => {
+      expect(validate(a2ui, { kind: "composition", catalog })).toEqual([]);
+    });
+  }
+
+  for (const { id, a2ui } of pages) {
+    test(`page ${id}`, () => {
+      expect(validate(a2ui, { kind: "page", catalog })).toEqual([]);
+    });
+  }
+});
+
 describe("catalog wiring", () => {
-  test("every pds catalog component resolves to a schema", () => {
+  // Resolved the same way the pack itself resolves it (createRequire), not by a
+  // hardcoded ../../../node_modules path: a hardcoded path silently reads the
+  // hoisted root copy even when this pack resolves a different one, which is the
+  // exact drift the pinned-version test below exists to prevent.
+  test("every catalog component resolves to a schema", () => {
     const catalogJson = JSON.parse(
-      readFileSync(join(HERE, "../../../node_modules/@shadab5114/pds-core/catalog.json"), "utf8"),
+      readFileSync(createRequire(import.meta.url).resolve(`${CATALOG_PACKAGE}/catalog.json`), "utf8"),
     ) as { components: Record<string, unknown> };
     for (const name of Object.keys(catalogJson.components)) {
       expect(catalog.entry(name), name).toBeDefined();
@@ -64,22 +103,44 @@ describe("catalog wiring", () => {
     expect(catalog.entry("Slot")).toMatchObject({ source: "extra", allowedIn: "page" });
   });
 
-  test("the pinned pds-core version is exact and recorded in pack.json", () => {
-    const pack = JSON.parse(readFileSync(join(HERE, "pack.json"), "utf8")) as { catalogPackage: { version: string } };
-    const pkg = JSON.parse(readFileSync(join(HERE, "package.json"), "utf8")) as { dependencies: Record<string, string> };
-    expect(pkg.dependencies["@shadab5114/pds-core"]).toBe(pack.catalogPackage.version);
-    expect(pack.catalogPackage.version).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?$/);
+  /**
+   * One repo, one catalog. The playground renders against the copy of the
+   * catalog package that the ROOT package.json resolves, and the validator
+   * against the copy this pack resolves. If those differ, the server can reject
+   * a document the renderer draws fine (or the reverse), and nothing else in the
+   * suite notices — so the version is pinned exactly in three places and
+   * compared here. A caret on the catalog package is the bug this catches.
+   */
+  test("the pinned catalog version is exact and the same in pack.json, the pack and the root", () => {
+    const pack = JSON.parse(readFileSync(join(HERE, "pack.json"), "utf8")) as {
+      catalogPackage: { name: string; version: string };
+    };
+    const packPkg = JSON.parse(readFileSync(join(HERE, "package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    const rootPkg = JSON.parse(readFileSync(join(HERE, "../../../package.json"), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    const { name, version } = pack.catalogPackage;
+
+    expect(version).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?$/);
+    expect(packPkg.dependencies[name]).toBe(version);
+    expect(rootPkg.dependencies[name], `root package.json must pin ${name} to exactly ${version}`).toBe(version);
   });
 
+  // Asserts createVdsCatalog() READS pack.json rather than carrying its own
+  // constant, so pack.json stays the only place the catalog identity is written.
   test("the catalog id comes from pack.json", () => {
-    expect(catalog.catalogId).toBe("https://pdesign.dev/catalog/v1/catalog.json");
+    const pack = JSON.parse(readFileSync(join(HERE, "pack.json"), "utf8")) as { catalogId: string };
+    expect(pack.catalogId).toMatch(/^https?:\/\//);
+    expect(catalog.catalogId).toBe(pack.catalogId);
   });
 });
 
 describe("prop-invalid messages", () => {
   const docWith = (comp: Record<string, unknown>) => ({
     a2ui: [
-      { version: "v0.9", createSurface: { surfaceId: "main", catalogId: "https://pdesign.dev/catalog/v1/catalog.json" } },
+      { version: "v0.9", createSurface: { surfaceId: "main", catalogId: catalog.catalogId } },
       { version: "v0.9", updateComponents: { surfaceId: "main", components: [{ id: "root", ...comp }] } },
     ],
   });

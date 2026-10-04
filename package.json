@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "check:catalog": "node scripts/check-catalog.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,7 +23,7 @@
   },
   "dependencies": {
     "@shadab5114/pdesign-tokens": "^1.0.0-alpha.2",
-    "@shadab5114/pds-core": "^1.0.0-alpha.11",
+    "@shadab5114/pds-core": "1.0.0-alpha.11",
     "fast-json-patch": "^3.1.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

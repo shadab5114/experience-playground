@@ -4,7 +4,6 @@ import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { CompositionEditor } from './CompositionEditor'
 import { CompositionList } from './CompositionList'
-import { FlowsSection } from './FlowsSection'
 import { MappingsSection } from './MappingsSection'
 import { PageEditor } from './PageEditor'
 import { PageList } from './PageList'
@@ -15,7 +14,6 @@ const SECTION_LABELS: Record<StudioSection, string> = {
   compositions: 'Compositions',
   pages: 'Pages',
   mappings: 'Mappings',
-  flows: 'Flows',
 }
 
 /** The sections that open a record editor, and what to call a new one. */
@@ -30,7 +28,6 @@ export function StudioView({ section, id }: { section: StudioSection; id?: strin
   const error = useStudioStore((s) => s.error)
   const compositions = useStudioStore((s) => s.compositions)
   const pages = useStudioStore((s) => s.pages)
-  const flows = useStudioStore((s) => s.flows)
   const editor = useStudioStore((s) => s.editor)
   const pendingDelete = useStudioStore((s) => s.pendingDelete)
   const notice = useStudioStore((s) => s.notice)
@@ -72,7 +69,6 @@ export function StudioView({ section, id }: { section: StudioSection; id?: strin
     compositions: compositions.length,
     pages: pages.length,
     mappings: undefined,
-    flows: flows.length,
   }
 
   const handleSave = async () => {
@@ -166,13 +162,8 @@ export function StudioView({ section, id }: { section: StudioSection; id?: strin
             />
           )}
           {!editor && loaded && section === 'pages' && (
-            <PageList
-              pages={pages}
-              flows={flows}
-              onOpen={(openId) => navigate({ mode: 'studio', section: 'pages', id: openId })}
-            />
+            <PageList pages={pages} onOpen={(openId) => navigate({ mode: 'studio', section: 'pages', id: openId })} />
           )}
-          {!editor && loaded && section === 'flows' && <FlowsSection />}
           {!editor && loaded && section === 'mappings' && (
             <MappingsSection {...(id ? { pageTemplateId: id } : {})} />
           )}

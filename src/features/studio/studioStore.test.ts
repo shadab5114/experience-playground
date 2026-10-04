@@ -14,9 +14,6 @@ const { authoring, repo, task } = vi.hoisted(() => ({
     savePageTemplate: vi.fn(),
     deletePageTemplate: vi.fn(),
     pageTemplateDeleteImpact: vi.fn(),
-    listFlows: vi.fn(),
-    saveFlow: vi.fn(),
-    deleteFlow: vi.fn(),
     placementsForPage: vi.fn(),
     setPlacement: vi.fn(),
     deletePlacement: vi.fn(),
@@ -69,7 +66,6 @@ const pageDoc = {
 
 const pageRecord = {
   pageTemplateId: 'pdp-mock',
-  flowId: 'pdp',
   name: 'PDP',
   description: 'The product detail page.',
   a2ui: pageDoc,
@@ -86,7 +82,6 @@ beforeEach(() => {
     loading: false,
     error: null,
     compositions: [],
-    flows: [],
     pages: [],
     editor: null,
     pendingDelete: null,
@@ -96,9 +91,7 @@ beforeEach(() => {
     notice: null,
   })
   authoring.listCompositions.mockResolvedValue([record])
-  authoring.listFlows.mockResolvedValue([{ flowId: 'pdp', name: 'PDP' }])
   authoring.savePageTemplate.mockResolvedValue({ ok: true, record: pageRecord, warnings: [] })
-  authoring.saveFlow.mockImplementation(async (input: { flowId: string; name: string }) => input)
   authoring.pageTemplateDeleteImpact.mockResolvedValue({ origin: 'sample', placements: 1, savedVersions: 0 })
   authoring.deletePageTemplate.mockResolvedValue(undefined)
   authoring.placementsForPage.mockResolvedValue([])
@@ -127,11 +120,11 @@ function pageEditor(): PageEditorState {
 }
 
 describe('load', () => {
-  test('fetches compositions, flows and pages once', async () => {
+  test('fetches compositions and pages once', async () => {
     await store().load()
     await store().load()
     expect(store().compositions).toHaveLength(1)
-    expect(store().flows).toHaveLength(1)
+    expect(store().pages).toHaveLength(1)
     expect(authoring.listCompositions).toHaveBeenCalledTimes(1)
   })
 
@@ -144,7 +137,7 @@ describe('load', () => {
 
   test('force reloads after a sample import', async () => {
     await store().load()
-    authoring.importSamples.mockResolvedValue({ compositions: 1, flows: 0, pageTemplates: 0, placements: 2 })
+    authoring.importSamples.mockResolvedValue({ compositions: 1, pageTemplates: 0, placements: 2 })
     await store().importSamples()
     expect(authoring.listCompositions).toHaveBeenCalledTimes(2)
     expect(store().notice).toBe('Imported 3 sample rows.')
@@ -152,7 +145,7 @@ describe('load', () => {
 
   test('an import that adds nothing says so', async () => {
     await store().load()
-    authoring.importSamples.mockResolvedValue({ compositions: 0, flows: 0, pageTemplates: 0, placements: 0 })
+    authoring.importSamples.mockResolvedValue({ compositions: 0, pageTemplates: 0, placements: 0 })
     await store().importSamples()
     expect(store().notice).toMatch(/already present/)
   })
@@ -181,11 +174,11 @@ describe('openComposition', () => {
     ])
     repo.getMapping.mockResolvedValue({
       compositionId: 'basic-plan-tile',
-      appearsIn: [{ flowId: 'pdp', flowName: 'PDP', pageTemplateId: 'pdp-mock', slotId: 'plan-summary' }],
+      appearsIn: [{ pageTemplateId: 'pdp-mock', pageName: 'PDP', slotId: 'plan-summary' }],
     })
     await store().openComposition('basic-plan-tile')
     expect(compositionEditor().versions.map((v) => v.version)).toEqual([2, 1])
-    expect(compositionEditor().appearsIn[0]?.flowName).toBe('PDP')
+    expect(compositionEditor().appearsIn[0]?.pageName).toBe('PDP')
   })
 
   // Side panels must never keep the editor from opening.
@@ -407,7 +400,6 @@ describe('page templates', () => {
     const editor = pageEditor()
     expect(editor.form).toEqual({
       pageTemplateId: 'pdp-mock',
-      flowId: 'pdp',
       name: 'PDP',
       description: 'The product detail page.',
       agentRules: '',
@@ -416,9 +408,9 @@ describe('page templates', () => {
     expect(editor.origin).toBe('sample')
   })
 
-  test('a new page pre-selects the first flow, since flow_id cannot be null', async () => {
+  test('a new page starts empty and is marked new', async () => {
     await store().openPage(NEW_RECORD)
-    expect(pageEditor().form.flowId).toBe('pdp')
+    expect(pageEditor().form.pageTemplateId).toBe('')
     expect(pageEditor().isNew).toBe(true)
   })
 
@@ -476,47 +468,6 @@ describe('page templates', () => {
     await store().openPage('no-such-page')
     expect(store().editor).toBeNull()
     expect(store().error).toMatch(/no-such-page/)
-  })
-})
-
-describe('flows', () => {
-  test('saving a flow trims it and keeps the list sorted by name', async () => {
-    await store().load()
-    expect(await store().saveFlow('  checkout  ', '  Checkout  ')).toBe(true)
-    expect(authoring.saveFlow).toHaveBeenCalledWith({ flowId: 'checkout', name: 'Checkout' })
-    expect(store().flows.map((f) => f.flowId)).toEqual(['checkout', 'pdp'])
-  })
-
-  test('renaming replaces the flow rather than adding a second one', async () => {
-    await store().load()
-    await store().saveFlow('pdp', 'Product Detail Page')
-    expect(store().flows).toHaveLength(1)
-    expect(store().flows[0]?.name).toBe('Product Detail Page')
-  })
-
-  test('removing an unused flow drops it from the list', async () => {
-    await store().load()
-    authoring.deleteFlow.mockResolvedValue({ ok: true })
-    expect(await store().deleteFlow('pdp')).toBe(true)
-    expect(store().flows).toEqual([])
-    expect(store().notice).toBe('Deleted flow pdp')
-  })
-
-  // A flow with pages cannot go: the FK is NOT NULL with no cascade.
-  test('a refused flow delete shows the reason and keeps the flow', async () => {
-    await store().load()
-    authoring.deleteFlow.mockResolvedValue({ ok: false, message: 'Flow "pdp" still has 1 page template(s)' })
-    expect(await store().deleteFlow('pdp')).toBe(false)
-    expect(store().error).toMatch(/still has 1 page/)
-    expect(store().flows.map((f) => f.flowId)).toEqual(['pdp'])
-  })
-
-  test('a rejected flow id is reported and the list is untouched', async () => {
-    await store().load()
-    authoring.saveFlow.mockRejectedValue(new Error('PUT /v1/authoring/flows/page:bad failed (400)'))
-    expect(await store().saveFlow('page:bad', 'Bad')).toBe(false)
-    expect(store().error).toMatch(/400/)
-    expect(store().flows.map((f) => f.flowId)).toEqual(['pdp'])
   })
 })
 

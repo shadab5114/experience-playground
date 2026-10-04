@@ -2,12 +2,17 @@
 
 > Plan written 2026-10-04. An interactive, remote-only UI for creating and
 > editing compositions, page templates and mappings, with Postgres as the single
-> source of truth. Not yet built.
+> source of truth.
+>
+> **Status: S1-S8 are all built.** Flows were then removed (migration
+> `004_drop_flows.sql`): the model is Page -> Compositions, with placements as
+> the only mapping. Flow references below have been stripped; where this plan
+> and the code disagree on anything else, the code is the current word.
 
 ## Context
 
 Today there is no way to add content without editing JSON files and running a
-CLI. All four content tables (`compositions`, `page_templates`, `flows`,
+CLI. All three content tables (`compositions`, `page_templates`,
 `placements`) are written by exactly one thing: `seedPack` in
 `server/adapters/postgres/seed.ts`, driven by `npm run db:seed` from
 `ds-packs/vds/seed/*.json`. Over HTTP the backend is **entirely read-only** —
@@ -87,8 +92,6 @@ Notes on what already exists and needs no migration:
 - `composition_versions` exists with the right shape (`version`, `a2ui`,
   `summary`, `saved_by`, `saved_at`) and **no code touches it**. Use it for
   authoring history.
-- `page_templates.flow_id` is a **NOT NULL FK** to `flows`, so creating a page
-  requires choosing or creating a flow. The UI must handle this.
 
 ### Two fields to derive, not ask for
 
@@ -116,12 +119,10 @@ export interface AuthoringStore {
   listCompositions(): Promise<CompositionRecord[]>;
   upsertComposition(input: CompositionInput): Promise<CompositionRecord>;
   deleteComposition(id: string): Promise<void>;
-  // page templates + flows
+  // page templates
   listPageTemplates(): Promise<PageTemplateRecord[]>;
   upsertPageTemplate(input: PageTemplateInput): Promise<PageTemplateRecord>;
   deletePageTemplate(id: string): Promise<void>;
-  listFlows(): Promise<FlowRecord[]>;
-  upsertFlow(input: FlowInput): Promise<FlowRecord>;
   // mappings
   placementsForPage(pageTemplateId: string): Promise<PlacementRecord[]>;
   setPlacement(input: PlacementInput): Promise<void>;
@@ -144,7 +145,7 @@ write routes call. Without it, `GET /v1/compositions` serves stale data for up t
 `server/packages/contract/src/index.ts` has no writable shapes at all.
 `PlacementView` is a read projection (no `position`, no `compositionId`). Add
 Zod schemas + inferred types: `CompositionInput`, `CompositionRecord`,
-`PageTemplateInput`, `PageTemplateRecord`, `FlowInput`, `FlowRecord`,
+`PageTemplateInput`, `PageTemplateRecord`,
 `PlacementInput`, `PlacementRecord`, `ValidationReport`.
 
 `seed.ts:9-41`'s Zod schemas (`SeedComposition` etc.) are the closest existing
@@ -164,8 +165,6 @@ would fail preflight.
 | GET | `/v1/authoring/page-templates` | List |
 | PUT | `/v1/authoring/page-templates/:id` | Create or update |
 | DELETE | `/v1/authoring/page-templates/:id` | Delete |
-| GET | `/v1/authoring/flows` | List |
-| PUT | `/v1/authoring/flows/:id` | Create or update |
 | GET | `/v1/authoring/page-templates/:id/placements` | Mappings for one page |
 | PUT | `/v1/authoring/placements` | Set one placement |
 | DELETE | `/v1/authoring/placements` | Remove one placement |
@@ -238,7 +237,6 @@ reusing the `--glass-*` and `--radius-*` tokens in `src/index.css`.
 │ Compositions │                                                   │
 │ Pages        │            (selected section)                     │
 │ Mappings     │                                                   │
-│ Flows        │                                                   │
 └──────────────┴───────────────────────────────────────────────────┘
 ```
 
@@ -277,14 +275,14 @@ reusing the `--glass-*` and `--radius-*` tokens in `src/index.css`.
 └────────────────────────────────┴───────────────────────────────────┘
 ```
 
-**Page editor** — same layout, with `flow` as a select (plus "new flow…"), and
-slots shown **read-only, derived from the document's `Slot` nodes**.
+**Page editor** — same layout, with slots shown **read-only, derived from the
+document's `Slot` nodes**.
 
 **Mappings** — page-centric, because slots are the constraint:
 
 ```
 ┌─ Mappings ───────────────────────────────────────────────────────┐
-│  Page [ PDP  (pdp-mock) ▾ ]                      Flow: PDP       │
+│  Page [ PDP  (pdp-mock) ▾ ]                                      │
 ├──────────────────────────────────────────────────────────────────┤
 │  Slot           Composition                 Variant   Pos        │
 │  plan-summary   [ Basic Plan – Mobile  ▾ ]  [      ]  [0]   ✕    │
@@ -323,7 +321,7 @@ node's disambiguation prompt (`nodes.ts:186`), and `agent_rules` doesn't exist.
 | S3 | Authoring routes + `POST /validate` + cache invalidation | Routes exercised by `app.test.ts` |
 | S4 | Studio shell, hash router, `studioStore`, form primitives | Studio opens in remote mode, lists compositions |
 | S5 | Composition editor: metadata, JSON pane, live preview, validation | Create, edit, delete a composition end to end |
-| S6 | Page editor + flow management | Same for pages; slots derived correctly |
+| S6 | Page editor | Same for pages; slots derived correctly |
 | S7 | Mappings builder + page preview | A new mapping shows up in the Playground's Impacts view |
 | S8 | Agent wiring: `agent_rules` + `description` into `generate` | A rule demonstrably changes agent behaviour |
 

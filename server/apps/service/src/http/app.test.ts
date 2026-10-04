@@ -268,8 +268,9 @@ describe("browser access (CORS) and placements", () => {
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 
-  test("placements include flowId for the impacts tabs", async () => {
+  test("placements name the pages a composition appears on, in tab order", async () => {
     const placements = await json<PlacementView[]>(await app.request("/v1/compositions/basic-plan-tile/placements"));
-    expect(placements.map((p) => p.flowId)).toEqual(["pdp", "aal", "order-summary"]);
+    expect(placements.map((p) => p.pageTemplateId)).toEqual(["pdp-mock", "aal-mock", "order-summary-mock"]);
+    expect(placements.map((p) => p.pageName)).toEqual(["PDP", "AAL", "Order Summary"]);
   });
 });

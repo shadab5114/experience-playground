@@ -60,7 +60,7 @@ describe("PostgresCompositionStore", () => {
 
   test("placements come back in tab order with page A2UI attached", async () => {
     const placements = await store.placements("basic-plan-tile");
-    expect(placements.map((p) => p.flowName)).toEqual(["PDP", "AAL", "Order Summary"]);
+    expect(placements.map((p) => p.pageName)).toEqual(["PDP", "AAL", "Order Summary"]);
     expect(placements.every((p) => p.slotId === "plan-summary")).toBe(true);
     expect(placements[2]?.variant).toBe("compact");
     expect(placements[0]?.variant).toBeUndefined();
@@ -82,7 +82,7 @@ describe("importSamples", () => {
     );
     const placementsAfter = await pool.query("select count(*)::int as n from placements");
 
-    expect(counts).toEqual({ compositions: 0, flows: 0, pageTemplates: 0, placements: 0 });
+    expect(counts).toEqual({ compositions: 0, pageTemplates: 0, placements: 0 });
     expect(after.rows).toEqual(before.rows);
     expect(placementsAfter.rows).toEqual(placementsBefore.rows);
   });
@@ -133,7 +133,7 @@ describe("importSamples", () => {
 
     const counts = await importSamples(pool, VDS_PACK_DIR);
 
-    expect(counts).toEqual({ compositions: 0, flows: 0, pageTemplates: 0, placements: 1 });
+    expect(counts).toEqual({ compositions: 0, pageTemplates: 0, placements: 1 });
     const authored = await pool.query<{ name: string; origin: string }>(
       "select name, origin from compositions where id = $1",
       ["studio-tile"],

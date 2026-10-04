@@ -5,16 +5,12 @@ import { RemoteRepository } from './RemoteRepository'
 
 const placements = [
   {
-    flowId: 'pdp',
-    flowName: 'PDP',
     pageTemplateId: 'pdp-mock',
     pageName: 'PDP',
     slotId: 'plan-summary',
     pageA2ui: pdpPage.a2ui,
   },
   {
-    flowId: 'order-summary',
-    flowName: 'Order Summary',
     pageTemplateId: 'order-summary-mock',
     pageName: 'Order Summary',
     slotId: 'plan-summary',
@@ -63,7 +59,7 @@ describe('RemoteRepository', () => {
   test('maps placements to a mapping and caches page templates with their slots', async () => {
     const repo = new RemoteRepository('http://api.test', fakeApi({ '/v1/compositions/basic-plan-tile/placements': placements }))
     const mapping = await repo.getMapping('basic-plan-tile')
-    expect(mapping.appearsIn.map((p) => p.flowId)).toEqual(['pdp', 'order-summary'])
+    expect(mapping.appearsIn.map((p) => p.pageTemplateId)).toEqual(['pdp-mock', 'order-summary-mock'])
     expect(mapping.appearsIn[1]?.variant).toBe('compact')
     expect(mapping.appearsIn[0]).not.toHaveProperty('variant')
 

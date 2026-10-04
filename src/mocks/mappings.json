@@ -2,9 +2,22 @@
   {
     "compositionId": "basic-plan-tile",
     "appearsIn": [
-      { "flowId": "pdp", "flowName": "PDP", "pageTemplateId": "pdp-mock", "slotId": "plan-summary" },
-      { "flowId": "aal", "flowName": "AAL", "pageTemplateId": "aal-mock", "slotId": "plan-summary" },
-      { "flowId": "order-summary", "flowName": "Order Summary", "pageTemplateId": "order-summary-mock", "slotId": "plan-summary", "variant": "compact" }
+      {
+        "pageTemplateId": "pdp-mock",
+        "pageName": "PDP",
+        "slotId": "plan-summary"
+      },
+      {
+        "pageTemplateId": "aal-mock",
+        "pageName": "AAL",
+        "slotId": "plan-summary"
+      },
+      {
+        "pageTemplateId": "order-summary-mock",
+        "pageName": "Order Summary",
+        "slotId": "plan-summary",
+        "variant": "compact"
+      }
     ]
   }
 ]

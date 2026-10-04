@@ -166,22 +166,6 @@ describe('RemoteAuthoringRepository', () => {
     expect(calls[0]?.path).toBe('/v1/authoring/compositions/a%2Fb')
   })
 
-  test('a 409 on a flow delete is a refusal to show, not a throw', async () => {
-    const { fetchImpl } = fakeApi({
-      'DELETE /v1/authoring/flows/pdp': { status: 409, json: { error: 'Flow "pdp" still has 1 page template(s)' } },
-    })
-    const api = new RemoteAuthoringRepository('http://api.test', fetchImpl)
-    expect(await api.deleteFlow('pdp')).toEqual({
-      ok: false,
-      message: 'Flow "pdp" still has 1 page template(s)',
-    })
-  })
-
-  test('an unused flow deletes cleanly', async () => {
-    const { fetchImpl } = fakeApi({ 'DELETE /v1/authoring/flows/spare': { status: 204 } })
-    expect(await new RemoteAuthoringRepository('http://api.test', fetchImpl).deleteFlow('spare')).toEqual({ ok: true })
-  })
-
   test('deleting a placement sends the key as the body', async () => {
     const { fetchImpl, calls } = fakeApi({ 'DELETE /v1/authoring/placements': { status: 204 } })
     const api = new RemoteAuthoringRepository('http://api.test', fetchImpl)

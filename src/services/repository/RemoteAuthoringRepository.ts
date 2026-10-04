@@ -2,13 +2,11 @@ import {
   CompositionRecord,
   CompositionVersionSummary,
   DeleteImpact,
-  FlowRecord,
   PageTemplateRecord,
   PlacementRecord,
   ValidationFinding,
   ValidationReport,
   type CompositionInput,
-  type FlowInput,
   type PageTemplateInput,
   type PlacementInput,
   type PlacementKey,
@@ -77,28 +75,6 @@ export class RemoteAuthoringRepository implements AuthoringRepository {
 
   pageTemplateDeleteImpact(pageTemplateId: string): Promise<DeleteImpact> {
     return this.getJson(`${BASE}/page-templates/${encodeURIComponent(pageTemplateId)}/delete-impact`, DeleteImpact)
-  }
-
-  listFlows(): Promise<FlowRecord[]> {
-    return this.getJson(`${BASE}/flows`, FlowRecord.array())
-  }
-
-  async saveFlow(input: FlowInput): Promise<FlowRecord> {
-    const res = await this.send('PUT', `${BASE}/flows/${encodeURIComponent(input.flowId)}`, input)
-    return FlowRecord.parse(await res.json())
-  }
-
-  async deleteFlow(flowId: string): Promise<{ ok: true } | { ok: false; message: string }> {
-    const res = await this.fetchImpl(`${this.baseUrl}${BASE}/flows/${encodeURIComponent(flowId)}`, {
-      method: 'DELETE',
-    })
-    // 409 means the flow still has pages — a refusal to show, not a crash.
-    if (res.status === 409 || res.status === 404) {
-      const payload = (await res.json().catch(() => ({}))) as { error?: string }
-      return { ok: false, message: payload.error ?? `Could not delete flow "${flowId}"` }
-    }
-    if (!res.ok) throw new Error(`DELETE ${BASE}/flows failed (${res.status})`)
-    return { ok: true }
   }
 
   placementsForPage(pageTemplateId: string): Promise<PlacementRecord[]> {

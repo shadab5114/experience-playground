@@ -11,8 +11,6 @@ import type {
   CompositionSummary,
   CompositionVersionSummary,
   DeleteImpact,
-  FlowInput,
-  FlowRecord,
   PageTemplateInput,
   PageTemplateRecord,
   PlacementInput,
@@ -94,19 +92,11 @@ export interface AuthoringStore {
   // What a hard delete would take with it, for the confirm dialog. null = no such row.
   compositionDeleteImpact(compositionId: string): Promise<DeleteImpact | null>;
 
-  // Page templates and the flows they belong to
+  // Page templates
   listPageTemplates(): Promise<PageTemplateRecord[]>;
   upsertPageTemplate(input: PageTemplateInput): Promise<PageTemplateRecord>;
   deletePageTemplate(pageTemplateId: string): Promise<boolean>;
   pageTemplateDeleteImpact(pageTemplateId: string): Promise<DeleteImpact | null>;
-  listFlows(): Promise<FlowRecord[]>;
-  upsertFlow(input: FlowInput): Promise<FlowRecord>;
-  // How many page templates belong to a flow. A flow with pages cannot be
-  // deleted: page_templates.flow_id is NOT NULL with no cascade, so the delete
-  // would fail at the database anyway — better to say so than to surface a
-  // constraint error. null = no such flow.
-  flowPageCount(flowId: string): Promise<number | null>;
-  deleteFlow(flowId: string): Promise<boolean>;
 
   // Mappings. Page-centric, because a page's slots are what constrains them.
   placementsForPage(pageTemplateId: string): Promise<PlacementRecord[]>;

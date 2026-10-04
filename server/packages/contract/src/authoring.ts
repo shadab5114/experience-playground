@@ -57,7 +57,6 @@ export type CompositionRecord = z.infer<typeof CompositionRecord>;
 
 export const PageTemplateInput = z.object({
   pageTemplateId: RecordId,
-  flowId: RecordId,
   name: z.string().min(1),
   description: z.string().optional(),
   agentRules: z.string().optional(),
@@ -72,16 +71,6 @@ export const PageTemplateRecord = PageTemplateInput.extend({
   origin: RecordOrigin,
 });
 export type PageTemplateRecord = z.infer<typeof PageTemplateRecord>;
-
-export const FlowInput = z.object({
-  flowId: RecordId,
-  name: z.string().min(1),
-});
-export type FlowInput = z.infer<typeof FlowInput>;
-
-// A flow has no derived or server-owned fields, so its record is its input.
-export const FlowRecord = FlowInput;
-export type FlowRecord = z.infer<typeof FlowRecord>;
 
 // One composition hosted in one slot of one page. Unlike PlacementView (a read
 // projection for the Impacts view) this is the row itself: it names the

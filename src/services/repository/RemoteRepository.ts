@@ -72,9 +72,8 @@ export class RemoteRepository implements Repository {
     return {
       compositionId,
       appearsIn: placements.map((p) => ({
-        flowId: p.flowId,
-        flowName: p.flowName,
         pageTemplateId: p.pageTemplateId,
+        pageName: p.pageName,
         slotId: p.slotId,
         ...(p.variant ? { variant: p.variant } : {}),
       })),

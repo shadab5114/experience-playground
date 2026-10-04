@@ -265,7 +265,10 @@ export function makeNodes(deps: AgentDeps): Nodes {
       ...(rules
         ? [`Rules for this composition, written by its author. Follow them unless a guideline forbids it:\n${rules}`]
         : []),
-      'Return kind "edit" with the full document, a short summary and one friendly message sentence. Or return kind "refusal" with a reason and alternatives that the catalog and the guidelines both allow.',
+      // Spelled out because the envelope's own message list is called "a2ui"
+      // too, and a model told to put a document in a field named "a2ui" will
+      // otherwise return the bare message array.
+      'Return kind "edit" with the full document, a short summary and one friendly message sentence. The a2ui field is the whole document object, shaped { "meta": {...}, "a2ui": [ ...messages... ] } like the one above — not the bare message array. Or return kind "refusal" with a reason and alternatives that the catalog and the guidelines both allow.',
     ].join("\n\n");
     const out = await deps.model.structured({
       system,

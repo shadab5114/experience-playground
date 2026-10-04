@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
  * The playground itself stays at `#/` (or no hash at all) and keeps its
  * existing state-in-the-store behaviour — picking a tile does not change the URL.
  */
-export const STUDIO_SECTIONS = ['compositions', 'pages', 'mappings', 'flows'] as const
+export const STUDIO_SECTIONS = ['compositions', 'pages', 'mappings'] as const
 export type StudioSection = (typeof STUDIO_SECTIONS)[number]
 
 export type Route = { mode: 'playground' } | { mode: 'studio'; section: StudioSection; id?: string }

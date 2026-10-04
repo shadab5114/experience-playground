@@ -11,7 +11,6 @@ import { z } from "zod";
 import {
   CompositionInput,
   PageTemplateInput,
-  FlowInput,
   PlacementInput,
   PlacementKey,
   type ValidationReport,
@@ -29,7 +28,6 @@ import {
 // does not import the Postgres adapter.
 export interface SampleImportCounts {
   compositions: number;
-  flows: number;
   pageTemplates: number;
   placements: number;
 }
@@ -118,7 +116,7 @@ export function createAuthoringRoutes(deps: AuthoringDeps): Hono {
     return c.json(await deps.authoring.listVersions(compositionId));
   });
 
-  // --- Page templates and flows --------------------------------------------
+  // --- Page templates -------------------------------------------------------
 
   app.get("/page-templates", async (c) => c.json(await deps.authoring.listPageTemplates()));
 
@@ -128,13 +126,6 @@ export function createAuthoringRoutes(deps: AuthoringDeps): Hono {
     if (!body.success) return c.json({ error: "Invalid page template", issues: body.error.issues }, 400);
     if (body.data.pageTemplateId !== pageTemplateId) {
       return c.json({ error: `Body id "${body.data.pageTemplateId}" does not match the path id "${pageTemplateId}"` }, 400);
-    }
-
-    // flow_id is a NOT NULL foreign key, so an unknown flow is the caller's
-    // mistake to hear about, not a 500 from the driver.
-    const flows = await deps.authoring.listFlows();
-    if (!flows.some((f) => f.flowId === body.data.flowId)) {
-      return c.json({ error: `Unknown flow "${body.data.flowId}"`, flows: flows.map((f) => f.flowId) }, 400);
     }
 
     // "page" is the kind that lets Slot through; a composition may not contain one.
@@ -157,31 +148,6 @@ export function createAuthoringRoutes(deps: AuthoringDeps): Hono {
     const impact = await deps.authoring.pageTemplateDeleteImpact(c.req.param("pageTemplateId"));
     if (!impact) return c.json({ error: "Page template not found" }, 404);
     return c.json(impact);
-  });
-
-  app.get("/flows", async (c) => c.json(await deps.authoring.listFlows()));
-
-  app.put("/flows/:flowId", async (c) => {
-    const flowId = c.req.param("flowId");
-    const body = FlowInput.safeParse(await c.req.json().catch(() => undefined));
-    if (!body.success) return c.json({ error: "Invalid flow", issues: body.error.issues }, 400);
-    if (body.data.flowId !== flowId) {
-      return c.json({ error: `Body id "${body.data.flowId}" does not match the path id "${flowId}"` }, 400);
-    }
-    return c.json(await deps.authoring.upsertFlow(body.data));
-  });
-
-  // A flow with pages cannot be deleted, so the refusal names the count rather
-  // than letting a foreign key violation surface as a 500.
-  app.delete("/flows/:flowId", async (c) => {
-    const flowId = c.req.param("flowId");
-    const pages = await deps.authoring.flowPageCount(flowId);
-    if (pages === null) return c.json({ error: "Flow not found" }, 404);
-    if (pages > 0) {
-      return c.json({ error: `Flow "${flowId}" still has ${pages} page template(s)`, pages }, 409);
-    }
-    await deps.authoring.deleteFlow(flowId);
-    return c.body(null, 204);
   });
 
   // --- Mappings -------------------------------------------------------------

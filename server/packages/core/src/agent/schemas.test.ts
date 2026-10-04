@@ -17,6 +17,25 @@ describe("ModelDocumentSchema", () => {
   test("still rejects a string that is not a document", () => {
     expect(ModelDocumentSchema.safeParse("not a document").success).toBe(false);
   });
+
+  // What the model actually sent when asked to change a tile background: the
+  // envelope's message list, because that field is called "a2ui" as well.
+  test("wraps a bare message array back into the envelope", () => {
+    const parsed = ModelDocumentSchema.safeParse(doc.a2ui);
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data).toEqual(doc);
+  });
+
+  test("wraps a bare message array the model sent as a JSON string", () => {
+    const parsed = ModelDocumentSchema.safeParse(JSON.stringify(doc.a2ui));
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data).toEqual(doc);
+  });
+
+  test("still rejects an array that is not a message list", () => {
+    expect(ModelDocumentSchema.safeParse([{ nope: true }]).success).toBe(false);
+    expect(ModelDocumentSchema.safeParse([]).success).toBe(false);
+  });
 });
 
 // A refusal names reason and alternatives; an edit names a2ui, summary and

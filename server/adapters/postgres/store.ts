@@ -105,26 +105,21 @@ export class PostgresCompositionStore implements CompositionStore {
 
   async placements(compositionId: string): Promise<PlacementView[]> {
     const { rows } = await this.pool.query<{
-      flow_id: string;
-      flow_name: string;
       page_template_id: string;
       page_name: string;
       slot_id: string;
       variant: string | null;
       page_a2ui: A2UIDocument;
     }>(
-      `select f.id as flow_id, f.name as flow_name, pt.id as page_template_id, pt.name as page_name,
+      `select pt.id as page_template_id, pt.name as page_name,
               p.slot_id, p.variant, pt.a2ui as page_a2ui
        from placements p
        join page_templates pt on pt.id = p.page_template_id
-       join flows f on f.id = pt.flow_id
        where p.composition_id = $1 and pt.ds_pack = $2
        order by p.position`,
       [compositionId, this.dsPack],
     );
     return rows.map((r) => ({
-      flowId: r.flow_id,
-      flowName: r.flow_name,
       pageTemplateId: r.page_template_id,
       pageName: r.page_name,
       slotId: r.slot_id,

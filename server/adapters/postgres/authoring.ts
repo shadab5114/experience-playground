@@ -16,8 +16,6 @@ import type {
   CompositionRecord,
   CompositionVersionSummary,
   DeleteImpact,
-  FlowInput,
-  FlowRecord,
   PageTemplateInput,
   PageTemplateRecord,
   PlacementInput,
@@ -44,7 +42,6 @@ interface CompositionRow {
 
 interface PageTemplateRow {
   id: string;
-  flow_id: string;
   name: string;
   description: string | null;
   agent_rules: string | null;
@@ -56,7 +53,7 @@ interface PageTemplateRow {
 const COMPOSITION_COLUMNS = `id, name, family, description, agent_rules, type, tags,
          components_used, a2ui_version, a2ui, origin, updated_at`;
 
-const PAGE_TEMPLATE_COLUMNS = `id, flow_id, name, description, agent_rules, slots, a2ui, origin`;
+const PAGE_TEMPLATE_COLUMNS = `id, name, description, agent_rules, slots, a2ui, origin`;
 
 // A null column becomes an absent field, not an explicit undefined: the contract
 // schemas use .optional(), and a record has to round-trip through them.
@@ -80,7 +77,6 @@ function toComposition(row: CompositionRow): CompositionRecord {
 function toPageTemplate(row: PageTemplateRow): PageTemplateRecord {
   return {
     pageTemplateId: row.id,
-    flowId: row.flow_id,
     name: row.name,
     ...(row.description === null ? {} : { description: row.description }),
     ...(row.agent_rules === null ? {} : { agentRules: row.agent_rules }),
@@ -168,16 +164,15 @@ export class PostgresAuthoringStore implements AuthoringStore {
   async upsertPageTemplate(input: PageTemplateInput): Promise<PageTemplateRecord> {
     const { rows } = await this.pool.query<PageTemplateRow>(
       `insert into page_templates
-         (id, flow_id, ds_pack, name, description, agent_rules, slots, a2ui, origin)
-       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'authored')
+         (id, ds_pack, name, description, agent_rules, slots, a2ui, origin)
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb, 'authored')
        on conflict (id) do update set
-         flow_id = excluded.flow_id, ds_pack = excluded.ds_pack, name = excluded.name,
+         ds_pack = excluded.ds_pack, name = excluded.name,
          description = excluded.description, agent_rules = excluded.agent_rules,
          slots = excluded.slots, a2ui = excluded.a2ui
        returning ${PAGE_TEMPLATE_COLUMNS}`,
       [
         input.pageTemplateId,
-        input.flowId,
         this.dsPack,
         input.name,
         input.description ?? null,
@@ -208,41 +203,6 @@ export class PostgresAuthoringStore implements AuthoringStore {
     const row = rows[0];
     if (!row) return null;
     return { origin: row.origin as RecordOrigin, placements: row.placements, savedVersions: 0 };
-  }
-
-  async listFlows(): Promise<FlowRecord[]> {
-    const { rows } = await this.pool.query<{ id: string; name: string }>(
-      `select id, name from flows where ds_pack = $1 order by name`,
-      [this.dsPack],
-    );
-    return rows.map((r) => ({ flowId: r.id, name: r.name }));
-  }
-
-  async upsertFlow(input: FlowInput): Promise<FlowRecord> {
-    const { rows } = await this.pool.query<{ id: string; name: string }>(
-      `insert into flows (id, ds_pack, name) values ($1, $2, $3)
-       on conflict (id) do update set ds_pack = excluded.ds_pack, name = excluded.name
-       returning id, name`,
-      [input.flowId, this.dsPack, input.name],
-    );
-    return { flowId: rows[0]!.id, name: rows[0]!.name };
-  }
-
-  async flowPageCount(flowId: string): Promise<number | null> {
-    const { rows } = await this.pool.query<{ pages: number }>(
-      `select (select count(*)::int from page_templates pt where pt.flow_id = f.id) as pages
-       from flows f where f.ds_pack = $1 and f.id = $2`,
-      [this.dsPack, flowId],
-    );
-    return rows[0]?.pages ?? null;
-  }
-
-  async deleteFlow(flowId: string): Promise<boolean> {
-    const { rowCount } = await this.pool.query(`delete from flows where ds_pack = $1 and id = $2`, [
-      this.dsPack,
-      flowId,
-    ]);
-    return (rowCount ?? 0) > 0;
   }
 
   async placementsForPage(pageTemplateId: string): Promise<PlacementRecord[]> {

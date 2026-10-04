@@ -51,7 +51,6 @@ const tileInput = (over: Partial<CompositionInput> = {}): CompositionInput => ({
 
 const pageInput = (over: Partial<PageTemplateInput> = {}): PageTemplateInput => ({
   pageTemplateId: "studio-page",
-  flowId: "pdp",
   name: "Studio Page",
   a2ui: docWith([
     { id: "root", component: "Stack", direction: "column", children: ["plan", "promo"] },
@@ -159,35 +158,7 @@ describe("compositions", () => {
   });
 });
 
-describe("flows and page templates", () => {
-  test("listFlows returns the sample flows by name", async () => {
-    expect((await store.listFlows()).map((f) => f.flowId)).toEqual(["aal", "order-summary", "pdp"]);
-  });
-
-  test("upsertFlow creates and then renames", async () => {
-    expect(await store.upsertFlow({ flowId: "studio-flow", name: "Studio Flow" })).toEqual({
-      flowId: "studio-flow",
-      name: "Studio Flow",
-    });
-    expect(await store.upsertFlow({ flowId: "studio-flow", name: "Renamed" })).toEqual({
-      flowId: "studio-flow",
-      name: "Renamed",
-    });
-  });
-
-  test("flowPageCount reports usage, and a flow is deletable only when unused", async () => {
-    expect(await store.flowPageCount("pdp")).toBe(1);
-    expect(await store.flowPageCount("studio-flow")).toBe(0);
-    expect(await store.flowPageCount("no-such-flow")).toBeNull();
-
-    expect(await store.deleteFlow("studio-flow")).toBe(true);
-    expect((await store.listFlows()).map((f) => f.flowId)).not.toContain("studio-flow");
-    expect(await store.deleteFlow("studio-flow")).toBe(false);
-
-    // Put it back: the page tests below need it.
-    await store.upsertFlow({ flowId: "studio-flow", name: "Renamed" });
-  });
-
+describe("page templates", () => {
   test("upsertPageTemplate derives slots from the document's Slot nodes", async () => {
     const record = await store.upsertPageTemplate(pageInput({ description: "A page authored in the Studio." }));
 
@@ -345,7 +316,6 @@ describe("pack scoping", () => {
     const other = new PostgresAuthoringStore(pool, "other-pack", A2UI_VERSION);
     expect(await other.listCompositions()).toEqual([]);
     expect(await other.listPageTemplates()).toEqual([]);
-    expect(await other.listFlows()).toEqual([]);
     expect(await other.compositionDeleteImpact("basic-plan-tile")).toBeNull();
     expect(await other.deleteComposition("basic-plan-tile")).toBe(false);
   });

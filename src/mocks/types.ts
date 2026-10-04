@@ -20,14 +20,3 @@ export interface MockScenario {
   steps: MockScenarioStep[]
   outcome: MockScenarioOutcome
 }
-
-export interface VdsCapColorRule {
-  /** The real `BadgeBackgroundColor` token from pds-core. */
-  token: string
-  /** Designer-facing display name, used in refusal alternatives. */
-  name: string
-}
-
-export interface VdsRules {
-  capColors: VdsCapColorRule[]
-}

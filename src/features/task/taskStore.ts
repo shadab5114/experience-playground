@@ -56,7 +56,7 @@ interface TaskStore {
   redo(): void
   save(): Promise<void>
   setViewMode(mode: TaskState['view']['mode']): void
-  setImpactTab(flowId: string): void
+  setImpactTab(pageTemplateId: string): void
   setDevice(device: TaskState['view']['device']): void
 }
 
@@ -389,8 +389,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     set((state) => (state.task ? { task: { ...state.task, view: { ...state.task.view, mode } } } : state))
   },
 
-  setImpactTab(flowId) {
-    set((state) => (state.task ? { task: { ...state.task, view: { ...state.task.view, impactTab: flowId } } } : state))
+  setImpactTab(pageTemplateId) {
+    set((state) =>
+      state.task ? { task: { ...state.task, view: { ...state.task.view, impactTab: pageTemplateId } } } : state,
+    )
   },
 
   setDevice(device) {

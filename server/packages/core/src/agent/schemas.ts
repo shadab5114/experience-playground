@@ -21,15 +21,24 @@ export const PickSchema = z.object({
   message: z.string(),
 });
 
-// A document from the model. Some models return a nested object as a JSON string;
-// accept that, but only when the string parses into a valid document.
+// A document from the model. Two shapes get normalised before the schema sees
+// them, because both are things real models do here and neither is worth
+// failing a run over. Anything else still has to be a valid document.
 export const ModelDocumentSchema = z.preprocess((v) => {
-  if (typeof v !== "string") return v;
-  try {
-    return JSON.parse(v);
-  } catch {
-    return v;
+  let value = v;
+  // Some models return a nested object as a JSON string.
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return value;
+    }
   }
+  // The envelope's own message list is also called "a2ui", so a model asked for
+  // a document in a field named "a2ui" routinely hands back the bare message
+  // array instead of the envelope around it. Put the envelope back.
+  if (Array.isArray(value)) return { a2ui: value };
+  return value;
 }, A2UIDocumentSchema);
 
 // Each field below belongs to one kind, so the other kind's fields are

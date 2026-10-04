@@ -1,13 +1,12 @@
-import type { FlowRecord, PageTemplateRecord } from '@experience-agent/contract'
+import type { PageTemplateRecord } from '@experience-agent/contract'
 import styles from './StudioView.module.css'
 
 interface PageListProps {
   pages: PageTemplateRecord[]
-  flows: FlowRecord[]
   onOpen: (pageTemplateId: string) => void
 }
 
-export function PageList({ pages, flows, onOpen }: PageListProps) {
+export function PageList({ pages, onOpen }: PageListProps) {
   if (pages.length === 0) {
     return (
       <div className={`${styles.message} ${styles.messageInfo}`}>
@@ -15,8 +14,6 @@ export function PageList({ pages, flows, onOpen }: PageListProps) {
       </div>
     )
   }
-
-  const flowName = (flowId: string) => flows.find((f) => f.flowId === flowId)?.name ?? flowId
 
   return (
     <div className={styles.list}>
@@ -30,7 +27,7 @@ export function PageList({ pages, flows, onOpen }: PageListProps) {
           <span className={styles.listMain}>
             <span className={styles.listName}>{page.name}</span>
             <span className={styles.listMeta}>
-              {page.pageTemplateId} · {flowName(page.flowId)}
+              {page.pageTemplateId}
               {page.description ? ` · ${page.description}` : ''}
             </span>
           </span>
