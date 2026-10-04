@@ -15,3 +15,38 @@
 .accent {
   color: var(--pdesign-color-element-brandhighlight-onlightprimary, #d81226);
 }
+
+/* Playground / Studio toggle. Shown only in remote mode. */
+.modeToggle {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(17, 17, 26, 0.06);
+}
+
+.modeButton {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(17, 17, 26, 0.6);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.modeButton:hover {
+  color: #11111a;
+}
+
+.modeButtonActive {
+  background: #fff;
+  color: #11111a;
+  box-shadow: 0 1px 3px rgba(17, 17, 26, 0.12);
+}

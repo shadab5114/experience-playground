@@ -4,6 +4,7 @@
 // LangGraph: the graph adapter wraps these functions.
 import { z } from "zod";
 import type { A2UIDocument, AgentEvent, AgentRequest } from "@experience-agent/contract";
+import { documentComponents } from "../document";
 import { LABELS, type StepId } from "../graph/labels";
 import type { CatalogEntry, CatalogSource, ChatMessage, CompositionStore, GuidelineSource, Logger, ModelClient } from "../ports";
 import { blocking, validate as validateDocument, warnings } from "../validator";
@@ -37,7 +38,6 @@ export interface Nodes {
   respond: NodeFn;
 }
 
-// Component names in a document, from its updateComponents messages.
 // The open composition, for the nodes that work on it. Only edit and question routes get
 // here, and the route node sends everything else away when no composition is open.
 function openComposition(request: AgentRequest): { compositionId: string; currentA2ui: A2UIDocument } {
@@ -45,14 +45,6 @@ function openComposition(request: AgentRequest): { compositionId: string; curren
     throw new Error("no composition is open for this request");
   }
   return { compositionId: request.compositionId, currentA2ui: request.currentA2ui };
-}
-
-export function documentComponents(doc: A2UIDocument): string[] {
-  const names = new Set<string>();
-  for (const msg of doc.a2ui) {
-    if ("updateComponents" in msg) for (const c of msg.updateComponents.components) names.add(c.component);
-  }
-  return [...names];
 }
 
 const unique = <T>(xs: T[]): T[] => [...new Set(xs)];
@@ -92,8 +84,22 @@ export function fallbackGuidelineQuery(components: string[], topic: string | nul
 export function makeNodes(deps: AgentDeps): Nodes {
   const system = deps.pack.systemPrompt;
 
+  // The types in use, plus the pack's own list so a database with no
+  // compositions yet still names something. A lookup failure costs the hint,
+  // not the run: the pack's list stands in.
+  const compositionTypes = async (): Promise<string[]> => {
+    const stored = await deps.compositions.types().catch((err: unknown) => {
+      deps.log.warn("composition-types-unavailable", { reason: err instanceof Error ? err.name : "unknown" });
+      return [] as string[];
+    });
+    return unique([...deps.pack.compositionTypes, ...stored]).sort();
+  };
+
   const route: NodeFn = async (state) => {
     const { request } = state;
+    // The pack's list seeds an empty database; the data is what the agent is
+    // actually told about, so a type authored in the Studio is not invisible here.
+    const knownTypes = await compositionTypes();
     if (request.compositionId === undefined || request.currentA2ui === undefined) {
       // Chat-first: nothing is open yet. Only a request to open a composition makes sense here.
       const out = await deps.model.structured({
@@ -104,7 +110,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
             role: "user",
             content: [
               "No composition is open yet. The designer types a request before choosing a tile.",
-              `Known composition types: ${deps.pack.compositionTypes.join(", ")}.`,
+              `Known composition types: ${knownTypes.join(", ")}.`,
               `Request: ${request.prompt}`,
               "Classify it. switch: asks to open or bring up a composition or variant by name, such as \"show me home plan\"; put only the designer's own words for it in targetText. unsupported: anything else.",
             ].join("\n"),
@@ -125,6 +131,8 @@ export function makeNodes(deps: AgentDeps): Nodes {
       };
     }
 
+    // Fetched here and carried on the state: generate needs the prose written
+    // about this composition, and route has already paid for the read.
     const composition = await deps.compositions.get(request.compositionId);
     if (!composition) {
       return {
@@ -140,7 +148,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
     }
     const instructions = [
       `Composition: ${composition.name} (id ${composition.compositionId}, type ${composition.type}).`,
-      `Known composition types: ${deps.pack.compositionTypes.join(", ")}.`,
+      `Known composition types: ${knownTypes.join(", ")}.`,
       `Components in it: ${documentComponents(request.currentA2ui).join(", ") || "(none)"}.`,
       `Request: ${request.prompt}`,
       "Classify the request. edit: a request to change this composition, even when it is phrased as a statement such as \"change X to Y\". ask: only a question, such as one with \"what\", \"which\", \"how\" or a question mark, about this composition or its variants. switch: asks to open or bring up a different composition or variant by name, such as \"bring me Basic Plan Tile - Mobile\"; put in targetText only the words the designer used for it, with no word added (for \"show me home plan\", targetText is \"home plan\"). scope: about a page or a part of a page, such as the PDP header. unsupported: not a design change to this composition.",
@@ -152,7 +160,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
       messages: [...state.messages, { role: "user", content: instructions }],
       schema: RouteSchema,
     });
-    return { route: out };
+    return { route: out, composition };
   };
 
   // Finds the composition a switch request names. One match is taken as is; several go
@@ -240,6 +248,7 @@ export function makeNodes(deps: AgentDeps): Nodes {
 
   const generate: NodeFn = async (state) => {
     const ctx = required(state.context, "context");
+    const rules = state.composition?.agentRules?.trim();
     const components = ctx.catalog.map((e) => ({ component: e.component, props: z.toJSONSchema(e.props) }));
     const instructions = [
       `Request: ${state.request.prompt}`,
@@ -249,6 +258,13 @@ export function makeNodes(deps: AgentDeps): Nodes {
       JSON.stringify(components),
       "Guidelines (cite the sourceId in a refusal):",
       ctx.guidelines.map((g) => `[${g.sourceId}] ${g.text}`).join("\n") || "(none)",
+      // Most specific last: the pack's system prompt, then the retrieved
+      // guidelines, then the rules written about this one composition. These
+      // steer the model and are not enforced afterwards — a rule is guidance,
+      // which is why it lives in the prompt and not in the validator.
+      ...(rules
+        ? [`Rules for this composition, written by its author. Follow them unless a guideline forbids it:\n${rules}`]
+        : []),
       'Return kind "edit" with the full document, a short summary and one friendly message sentence. Or return kind "refusal" with a reason and alternatives that the catalog and the guidelines both allow.',
     ].join("\n\n");
     const out = await deps.model.structured({
@@ -258,7 +274,9 @@ export function makeNodes(deps: AgentDeps): Nodes {
     });
 
     if (out.kind === "refusal") {
-      return { refusal: { reason: out.reason ?? "That change isn't allowed.", alternatives: out.alternatives } };
+      return {
+        refusal: { reason: out.reason ?? "That change isn't allowed.", alternatives: out.alternatives ?? [] },
+      };
     }
     if (!out.a2ui) throw new Error("generate returned an edit without a document");
     return {

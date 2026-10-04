@@ -1,0 +1,148 @@
+/* Shared styling for the Studio's form primitives. Plain React + CSS Modules
+   reusing the --glass-* and --radius-* tokens from src/index.css, so the
+   Studio chrome matches the playground's frosted-panel look. */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 26, 0.55);
+}
+
+.required {
+  color: var(--pdesign-color-element-brandhighlight-onlightprimary, #d81226);
+  font-size: 11px;
+}
+
+/* The "↳ helps the agent find this" line under a field. */
+.hint {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: rgba(17, 17, 26, 0.5);
+}
+
+.error {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #b3261e;
+}
+
+.control,
+.textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  color: #11111a;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 17, 26, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.5;
+}
+
+.control:focus,
+.textarea:focus {
+  border-color: rgba(216, 18, 38, 0.5);
+  box-shadow: 0 0 0 3px rgba(216, 18, 38, 0.1);
+}
+
+.control:disabled,
+.textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.invalid,
+.invalid:focus {
+  border-color: rgba(179, 38, 30, 0.6);
+  box-shadow: 0 0 0 3px rgba(179, 38, 30, 0.1);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* --- TagInput ------------------------------------------------------------ */
+
+.tagInput {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 17, 26, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 5px 6px;
+}
+
+.tagInput:focus-within {
+  border-color: rgba(216, 18, 38, 0.5);
+  box-shadow: 0 0 0 3px rgba(216, 18, 38, 0.1);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 4px 2px 8px;
+  border-radius: 999px;
+  background: rgba(17, 17, 26, 0.06);
+  color: rgba(17, 17, 26, 0.75);
+}
+
+.tagRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(17, 17, 26, 0.5);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+
+.tagRemove:hover {
+  background: rgba(17, 17, 26, 0.12);
+  color: #11111a;
+}
+
+.tagEntry {
+  flex: 1;
+  min-width: 80px;
+  font: inherit;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 3px 4px;
+}

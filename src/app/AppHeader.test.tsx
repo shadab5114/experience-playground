@@ -4,7 +4,7 @@ import { AppHeader } from './AppHeader'
 
 describe('AppHeader', () => {
   it('shows the Experience Playground title and the VDS attribution', () => {
-    render(<AppHeader />)
+    render(<AppHeader route={{ mode: 'playground' }} />)
 
     expect(screen.getByText('Experience Playground')).toBeInTheDocument()
     expect(screen.getByText('VDS')).toBeInTheDocument()

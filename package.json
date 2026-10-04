@@ -18,7 +18,7 @@
     "db:up": "docker compose -f server/docker-compose.yml up -d --wait",
     "db:down": "docker compose -f server/docker-compose.yml down",
     "db:migrate": "node --env-file=server/.env --import tsx server/adapters/postgres/cli.ts migrate",
-    "db:seed": "node --env-file=server/.env --import tsx server/adapters/postgres/cli.ts seed"
+    "db:samples": "node --env-file=server/.env --import tsx server/adapters/postgres/cli.ts samples"
   },
   "dependencies": {
     "@shadab5114/pdesign-tokens": "^1.0.0-alpha.2",

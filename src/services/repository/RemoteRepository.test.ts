@@ -26,6 +26,9 @@ const placements = [
 const compositionDetail = {
   compositionId: basicPlanTile.id,
   name: basicPlanTile.name,
+  family: 'Basic Plan Tile',
+  description: 'Mobile version of the basic plan.',
+  agentRules: 'Never change the price text.',
   type: 'plan-tile',
   tags: ['plan'],
   a2ui: basicPlanTile.a2ui,

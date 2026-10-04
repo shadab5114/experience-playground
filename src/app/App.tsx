@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { AppHeader } from './AppHeader'
 import { LeftPane } from './LeftPane'
 import { SplitDivider } from './SplitDivider'
 import { PreviewPane } from '../features/preview/PreviewPane'
-import { useTaskStore } from '../features/task/taskStore'
+import { StudioView } from '../features/studio/StudioView'
+import { useHashRoute } from './useHashRoute'
 import styles from './App.module.css'
 
 const MIN_LEFT_PCT = 25
@@ -26,14 +27,10 @@ function readStoredWidth(): number {
 }
 
 export function App() {
-  const loadExperiences = useTaskStore((s) => s.loadExperiences)
+  const route = useHashRoute()
   const bodyRef = useRef<HTMLDivElement>(null)
   const [leftWidthPct, setLeftWidthPct] = useState(readStoredWidth)
   const widthRef = useRef(leftWidthPct)
-
-  useEffect(() => {
-    void loadExperiences()
-  }, [loadExperiences])
 
   const handleDrag = useCallback((clientX: number) => {
     const container = bodyRef.current
@@ -54,12 +51,18 @@ export function App() {
 
   return (
     <div className={styles.shell}>
-      <AppHeader />
-      <div className={styles.body} ref={bodyRef}>
-        <LeftPane widthPercent={leftWidthPct} />
-        <SplitDivider onDrag={handleDrag} onDragEnd={handleDragEnd} />
-        <PreviewPane />
-      </div>
+      <AppHeader route={route} />
+      {route.mode === 'studio' ? (
+        <div className={styles.body}>
+          <StudioView section={route.section} {...(route.id ? { id: route.id } : {})} />
+        </div>
+      ) : (
+        <div className={styles.body} ref={bodyRef}>
+          <LeftPane widthPercent={leftWidthPct} />
+          <SplitDivider onDrag={handleDrag} onDragEnd={handleDragEnd} />
+          <PreviewPane />
+        </div>
+      )}
     </div>
   )
 }

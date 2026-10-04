@@ -193,7 +193,7 @@ describe("one run per thread", () => {
 
   beforeAll(() => {
     gated = createApp({
-      compositions: new PostgresCompositionStore(pool, "vds"),
+      compositions: withListCache(new PostgresCompositionStore(pool, "vds"), 0),
       pingDatabase: () => pool.query("select 1").then(() => undefined),
       engine: gatedEngine,
       threadLock: new PostgresThreadLock(lockPool),

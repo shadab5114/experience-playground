@@ -57,15 +57,17 @@ export class RemoteRepository implements Repository {
       `/v1/compositions/${encodeURIComponent(compositionId)}/placements`,
       PlacementView.array(),
     )
+    // Always overwrite: the response carries the current page document, and the
+    // cache exists so getPageTemplate can answer without a second round trip,
+    // not to avoid refetching. Keeping a stale entry would hide a page edited in
+    // the Studio for the rest of the session.
     for (const p of placements) {
-      if (!this.pageTemplatesById.has(p.pageTemplateId)) {
-        this.pageTemplatesById.set(p.pageTemplateId, {
-          id: p.pageTemplateId,
-          name: p.pageName,
-          a2ui: p.pageA2ui,
-          slots: slotsOf(p.pageA2ui),
-        })
-      }
+      this.pageTemplatesById.set(p.pageTemplateId, {
+        id: p.pageTemplateId,
+        name: p.pageName,
+        a2ui: p.pageA2ui,
+        slots: slotsOf(p.pageA2ui),
+      })
     }
     return {
       compositionId,

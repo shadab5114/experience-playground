@@ -32,14 +32,17 @@ export const ModelDocumentSchema = z.preprocess((v) => {
   }
 }, A2UIDocumentSchema);
 
+// Each field below belongs to one kind, so the other kind's fields are
+// routinely absent rather than null. They default instead of being required:
+// an omitted field must not turn a perfectly good refusal into a failed run.
 export const GenerateSchema = z.object({
   kind: z.enum(["edit", "refusal"]),
   // Set when kind is "edit".
-  a2ui: ModelDocumentSchema.nullable(),
-  summary: z.string().nullable(),
-  message: z.string().nullable(),
+  a2ui: ModelDocumentSchema.nullish().default(null),
+  summary: z.string().nullish().default(null),
+  message: z.string().nullish().default(null),
   // Set when kind is "refusal".
-  reason: z.string().nullable(),
-  alternatives: z.array(z.string()),
+  reason: z.string().nullish().default(null),
+  alternatives: z.array(z.string()).nullish().default([]),
 });
 export type GenerateOutput = z.infer<typeof GenerateSchema>;

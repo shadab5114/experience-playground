@@ -3,7 +3,8 @@ import pg from "pg";
 import type { DbConnection } from "./connection";
 
 export { migrate, MIGRATIONS_DIR } from "./migrate";
-export { seedPack, type SeedCounts } from "./seed";
+export { importSamples, type ImportCounts } from "./samples";
+export { PostgresAuthoringStore } from "./authoring";
 export { PostgresCompositionStore, pingDatabase } from "./store";
 export { PostgresThreadLock } from "./threadLock";
 export { dbConnectionFromEnv, type DbConnection } from "./connection";

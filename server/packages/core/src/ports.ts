@@ -2,11 +2,24 @@
 // never imports an adapter, a design system pack, a vendor SDK or SQL.
 import type { ZodObject, ZodRawShape, ZodType } from "zod";
 import type {
+  A2UIDocument,
   AgentEvent,
   AgentRequest,
   CompositionDetail,
+  CompositionInput,
+  CompositionRecord,
   CompositionSummary,
+  CompositionVersionSummary,
+  DeleteImpact,
+  FlowInput,
+  FlowRecord,
+  PageTemplateInput,
+  PageTemplateRecord,
+  PlacementInput,
+  PlacementKey,
+  PlacementRecord,
   PlacementView,
+  SavedBy,
 } from "@experience-agent/contract";
 
 // Where a component may appear. "page" = a page template; "composition" = a
@@ -59,6 +72,56 @@ export interface CompositionStore {
   placements(compositionId: string): Promise<PlacementView[]>;
   // Compositions whose family, name and description together contain every word of the text.
   search(text: string): Promise<CompositionCandidate[]>;
+  // The composition types in use, read from the data rather than from a file:
+  // a type authored in the Studio has to be one the agent knows about too.
+  types(): Promise<string[]>;
+}
+
+// Writes for the Studio. Deliberately separate from CompositionStore: the read
+// path is cached by a wrapper that forwards methods by hand (apps/service/src/cache.ts),
+// so a method added to CompositionStore would be silently dropped. Nothing in the
+// agent flow touches this port.
+//
+// Every upsert derives what it can from the document rather than trusting the
+// caller (components used, a page's slots) and preserves the row's `origin`:
+// an edit records no change of provenance.
+export interface AuthoringStore {
+  // Compositions
+  listCompositions(): Promise<CompositionRecord[]>;
+  upsertComposition(input: CompositionInput): Promise<CompositionRecord>;
+  // false when no such composition exists, so a route can answer 404.
+  deleteComposition(compositionId: string): Promise<boolean>;
+  // What a hard delete would take with it, for the confirm dialog. null = no such row.
+  compositionDeleteImpact(compositionId: string): Promise<DeleteImpact | null>;
+
+  // Page templates and the flows they belong to
+  listPageTemplates(): Promise<PageTemplateRecord[]>;
+  upsertPageTemplate(input: PageTemplateInput): Promise<PageTemplateRecord>;
+  deletePageTemplate(pageTemplateId: string): Promise<boolean>;
+  pageTemplateDeleteImpact(pageTemplateId: string): Promise<DeleteImpact | null>;
+  listFlows(): Promise<FlowRecord[]>;
+  upsertFlow(input: FlowInput): Promise<FlowRecord>;
+  // How many page templates belong to a flow. A flow with pages cannot be
+  // deleted: page_templates.flow_id is NOT NULL with no cascade, so the delete
+  // would fail at the database anyway — better to say so than to surface a
+  // constraint error. null = no such flow.
+  flowPageCount(flowId: string): Promise<number | null>;
+  deleteFlow(flowId: string): Promise<boolean>;
+
+  // Mappings. Page-centric, because a page's slots are what constrains them.
+  placementsForPage(pageTemplateId: string): Promise<PlacementRecord[]>;
+  setPlacement(input: PlacementInput): Promise<void>;
+  deletePlacement(key: PlacementKey): Promise<void>;
+
+  // History. Versions number from 1 per composition; appendVersion returns the
+  // number it assigned. savedBy is required so each call site says which it is.
+  listVersions(compositionId: string): Promise<CompositionVersionSummary[]>;
+  appendVersion(input: {
+    compositionId: string;
+    a2ui: A2UIDocument;
+    summary?: string;
+    savedBy: SavedBy;
+  }): Promise<number>;
 }
 
 export interface ChatMessage {

@@ -4,7 +4,7 @@
 // schema. It drops only the backend tables.
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPool, dbConnectionFromEnv, migrate, seedPack, type DbConnection } from "./index";
+import { createPool, dbConnectionFromEnv, migrate, importSamples, type DbConnection } from "./index";
 import type pg from "pg";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -44,6 +44,6 @@ export async function resetTestDatabase(): Promise<pg.Pool> {
   const pool = createPool(conn);
   await pool.query(`drop table if exists ${OWN_TABLES.join(", ")} cascade`);
   await migrate(pool);
-  await seedPack(pool, VDS_PACK_DIR);
+  await importSamples(pool, VDS_PACK_DIR);
   return pool;
 }

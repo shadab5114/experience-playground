@@ -445,4 +445,53 @@ describe("agent graph", () => {
       expect(terminals(events)).toEqual([{ type: "answer", text: "Which plan tile did you mean?" }]);
     });
   });
+
+  // S8: the prose people write in the Studio has to reach the model, or the
+  // "agent rules" field is decoration. These assert on the prompt the generate
+  // node builds, because that is the only place a rule can take effect — rules
+  // steer the model and are deliberately not enforced by the validator.
+  describe("authored rules reach the generator", () => {
+    const rule = "Never change the price text. The Badge may only be red or neonYellow.";
+
+    const runEdit = async (threadId: string) => {
+      const model = createScriptedModel([
+        routeReply("edit", { guidelineQueries: ["Which background colors are approved for a Badge?"] }),
+        editReply(withComponent("badge", { backgroundColor: "red" })),
+      ]);
+      const engine = createTestEngine({ model, catalog, guidelines, compositions: store, log: createRecordingLog() });
+      await run(engine, threadId, request("make the cap red"));
+      // The generate call is the one answered with the GenerateSchema.
+      const generateCall = model.calls.at(-1)!;
+      return generateCall.messages.at(-1)!.content;
+    };
+
+    test("a composition with rules has them in the generate prompt, after the guidelines", async () => {
+      await pool.query("update compositions set agent_rules = $1 where id = $2", [rule, "basic-plan-tile"]);
+
+      const prompt = await runEdit("rules-present");
+
+      expect(prompt).toContain(rule);
+      // Most specific last: a rule must not be buried above the guidelines it
+      // is meant to override.
+      expect(prompt.indexOf(rule)).toBeGreaterThan(prompt.indexOf("Guidelines (cite the sourceId in a refusal):"));
+      expect(prompt).toContain("written by its author");
+    });
+
+    test("a composition with no rules gets no rules section at all", async () => {
+      await pool.query("update compositions set agent_rules = null where id = $1", ["basic-plan-tile"]);
+
+      const prompt = await runEdit("rules-absent");
+
+      expect(prompt).not.toContain("written by its author");
+      expect(prompt).toContain("Guidelines (cite the sourceId in a refusal):");
+    });
+
+    test("whitespace-only rules count as none", async () => {
+      await pool.query("update compositions set agent_rules = $1 where id = $2", ["     ", "basic-plan-tile"]);
+
+      const prompt = await runEdit("rules-blank");
+
+      expect(prompt).not.toContain("written by its author");
+    });
+  });
 });

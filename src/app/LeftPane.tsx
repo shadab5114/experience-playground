@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTaskStore } from '../features/task/taskStore'
 import { ExperienceTileGrid } from '../features/picker/ExperienceTileGrid'
 import { ChatThread } from '../features/chat/ChatThread'
@@ -14,12 +14,19 @@ import styles from './LeftPane.module.css'
  */
 export function LeftPane({ widthPercent }: { widthPercent: number }) {
   const experiences = useTaskStore((s) => s.experiences)
+  const loadExperiences = useTaskStore((s) => s.loadExperiences)
   const task = useTaskStore((s) => s.task)
   const draft = useTaskStore((s) => s.draft)
   const pickExperience = useTaskStore((s) => s.pickExperience)
   const closeTask = useTaskStore((s) => s.closeTask)
   const sendPrompt = useTaskStore((s) => s.sendPrompt)
   const sendChatFirstPrompt = useTaskStore((s) => s.sendChatFirstPrompt)
+
+  // Here rather than in App: the pane remounts when the Studio hands the
+  // screen back, which is exactly when a freshly authored tile has to appear.
+  useEffect(() => {
+    void loadExperiences()
+  }, [loadExperiences])
 
   const [pickerOpen, setPickerOpen] = useState(!task)
   const [inputValue, setInputValue] = useState('')

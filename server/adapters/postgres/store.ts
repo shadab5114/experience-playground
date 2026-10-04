@@ -64,20 +64,43 @@ export class PostgresCompositionStore implements CompositionStore {
     }));
   }
 
+  async types(): Promise<string[]> {
+    const { rows } = await this.pool.query<{ type: string }>(
+      `select distinct type from compositions where ds_pack = $1 order by type`,
+      [this.dsPack],
+    );
+    return rows.map((r) => r.type);
+  }
+
   async get(compositionId: string): Promise<CompositionDetail | null> {
     const { rows } = await this.pool.query<{
       id: string;
       name: string;
+      family: string | null;
+      description: string | null;
+      agent_rules: string | null;
       type: string;
       tags: string[];
       a2ui: A2UIDocument;
     }>(
-      `select id, name, type, tags, a2ui from compositions where ds_pack = $1 and id = $2`,
+      `select id, name, family, description, agent_rules, type, tags, a2ui
+       from compositions where ds_pack = $1 and id = $2`,
       [this.dsPack, compositionId],
     );
     const row = rows[0];
     if (!row) return null;
-    return { compositionId: row.id, name: row.name, type: row.type, tags: row.tags, a2ui: row.a2ui };
+    return {
+      compositionId: row.id,
+      name: row.name,
+      family: row.family ?? "",
+      description: row.description ?? "",
+      // Absent rather than empty when nobody has written any, so the generate
+      // node can leave the section out of the prompt entirely.
+      ...(row.agent_rules ? { agentRules: row.agent_rules } : {}),
+      type: row.type,
+      tags: row.tags,
+      a2ui: row.a2ui,
+    };
   }
 
   async placements(compositionId: string): Promise<PlacementView[]> {

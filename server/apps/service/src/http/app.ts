@@ -6,17 +6,24 @@ import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { AgentRequest } from "@experience-agent/contract";
 import { runAgent, type AgentEngine, type CompositionStore, type Logger, type ThreadLock } from "@experience-agent/core";
+import { createAuthoringRoutes, type AuthoringDeps } from "./authoring";
 
 export interface AppDeps {
   // Browser origins allowed to call the API. Requests from other origins get no CORS headers.
   corsOrigins?: string[];
-  compositions: CompositionStore;
+  // The read path, plus a way to drop its cached list. invalidate() is required
+  // rather than optional: a wiring that forgot it would serve stale lists for up
+  // to the cache TTL after every save, which reads as a lost save.
+  compositions: CompositionStore & { invalidate(): void };
   pingDatabase: () => Promise<void>;
   // The flow that answers prompts. Built by wire(); tests pass a scripted one.
   engine: AgentEngine;
   // One run per thread: a prompt on a busy thread gets 409.
   threadLock: ThreadLock;
   log: Logger;
+  // Studio writes. Left out, the authoring routes are simply not mounted, which
+  // is what the read-only tests want.
+  authoring?: Omit<AuthoringDeps, "invalidateCompositions">;
 }
 
 const ListQuery = z.object({
@@ -32,7 +39,8 @@ export function createApp(deps: AppDeps): Hono {
   const allowedOrigins = deps.corsOrigins ?? ["http://localhost:5173"];
   app.use("/v1/*", cors({
     origin: (origin) => (allowedOrigins.includes(origin) ? origin : ""),
-    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+    // PUT is here for the authoring routes; without it they fail CORS preflight.
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["content-type"],
   }));
 
@@ -44,6 +52,13 @@ export function createApp(deps: AppDeps): Hono {
       return c.json({ status: "unavailable", database: "down" }, 503);
     }
   });
+
+  if (deps.authoring) {
+    app.route(
+      "/v1/authoring",
+      createAuthoringRoutes({ ...deps.authoring, invalidateCompositions: () => deps.compositions.invalidate() }),
+    );
+  }
 
   app.get("/v1/compositions", async (c) => {
     const query = ListQuery.safeParse({ type: c.req.query("type"), q: c.req.query("q") });

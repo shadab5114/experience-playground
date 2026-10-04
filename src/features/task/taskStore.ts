@@ -31,6 +31,19 @@ interface TaskStore {
   pageTemplatesById: Record<string, PageTemplate>
 
   loadExperiences(): Promise<void>
+  /**
+   * Marks the experience list stale so the next loadExperiences() refetches.
+   * Called by the Studio after it creates, edits or deletes a composition —
+   * otherwise a tile authored there is missing from the picker until a reload,
+   * which looks exactly like the save having failed.
+   */
+  invalidateExperiences(): void
+  /**
+   * Re-reads the open task's mapping and the page templates it needs. Called by
+   * the Studio after a placement changes, so the Impacts view picks up a new
+   * tab without the designer having to reopen the task.
+   */
+  reloadMapping(): Promise<void>
   pickExperience(experienceId: string): Promise<void>
   closeTask(): void
   /** Discards the current task and opens another composition, keeping `carry` messages in the chat. */
@@ -65,6 +78,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     if (get().experiencesLoaded) return
     const experiences = await repository.listExperiences()
     set({ experiences, experiencesLoaded: true })
+  },
+
+  invalidateExperiences() {
+    set({ experiencesLoaded: false })
   },
 
   async pickExperience(experienceId: string) {
@@ -106,15 +123,19 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     // templates those placements need. Loaded alongside the task (not lazily
     // on first "View impacts" click) so the toolbar knows upfront whether to
     // show the button at all.
-    const mapping = await repository.getMapping(experience.compositionId)
-    const uniquePageTemplateIds = [...new Set(mapping.appearsIn.map((p) => p.pageTemplateId))]
-    const pageTemplates = await Promise.all(uniquePageTemplateIds.map((id) => repository.getPageTemplate(id)))
-    const pageTemplatesById = Object.fromEntries(pageTemplates.map((t) => [t.id, t]))
+    const loaded = await loadMapping(experience.compositionId)
 
     // The task may have been closed/switched while these loads were in flight.
     if (get().task?.threadId === task.threadId) {
-      set({ mapping, pageTemplatesById })
+      set(loaded)
     }
+  },
+
+  async reloadMapping() {
+    const task = get().task
+    if (!task) return
+    const loaded = await loadMapping(task.compositionId)
+    if (get().task?.threadId === task.threadId) set(loaded)
   },
 
   closeTask() {
@@ -376,6 +397,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     set((state) => (state.task ? { task: { ...state.task, view: { ...state.task.view, device } } } : state))
   },
 }))
+
+/** The Impacts view's data for one composition: where it appears, and those pages. */
+async function loadMapping(compositionId: string) {
+  const mapping = await repository.getMapping(compositionId)
+  const uniquePageTemplateIds = [...new Set(mapping.appearsIn.map((p) => p.pageTemplateId))]
+  const pageTemplates = await Promise.all(uniquePageTemplateIds.map((id) => repository.getPageTemplate(id)))
+  return { mapping, pageTemplatesById: Object.fromEntries(pageTemplates.map((t) => [t.id, t])) }
+}
 
 /** Derived, never stored. */
 export function hasUnsavedChanges(task: TaskState): boolean {

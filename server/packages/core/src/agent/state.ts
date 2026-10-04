@@ -1,6 +1,6 @@
 // The state the graph passes between nodes. The engine keeps `messages` per
 // thread; every other field is reset at the start of each run (startRun).
-import type { A2UIDocument, AgentRequest, CompositionSummary } from "@experience-agent/contract";
+import type { A2UIDocument, AgentRequest, CompositionDetail, CompositionSummary } from "@experience-agent/contract";
 import type { CatalogEntry, ChatMessage, CompositionCandidate } from "../ports";
 import type { ValidationError } from "../validator";
 
@@ -43,6 +43,9 @@ export interface AgentState {
   refusal: Refusal | null;
   validationErrors: ValidationError[];
   repairAttempts: number;
+  // Set by route: the open composition's stored record. Carried so generate can
+  // use the prose people wrote about it (agentRules) without a second read.
+  composition: CompositionDetail | null;
   // Set by find: the composition to open, or a plain reply when no single one was chosen.
   target: CompositionCandidate | null;
   reply: string | null;
@@ -55,6 +58,7 @@ export function startRun(request: AgentRequest): AgentState {
     request,
     messages: [],
     route: null,
+    composition: null,
     context: null,
     draft: null,
     draftSummary: null,

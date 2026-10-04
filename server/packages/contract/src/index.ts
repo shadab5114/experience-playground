@@ -6,6 +6,7 @@ import { z } from "zod";
 import { A2UIDocumentSchema } from "./a2ui";
 
 export * from "./a2ui";
+export * from "./authoring";
 
 export const CompositionSummary = z.object({
   compositionId: z.string(),
@@ -15,7 +16,16 @@ export const CompositionSummary = z.object({
 });
 export type CompositionSummary = z.infer<typeof CompositionSummary>;
 
+// family/description/agentRules are the prose people write in the Studio.
+// They reach the model: description helps it pick a composition, agentRules
+// steers how it edits this one. Empty strings rather than nulls, because the
+// columns are nullable and a caller should not have to handle both.
+// Defaulted, not required: a response from a build that predates these fields
+// still parses, and a caller never has to handle both "" and undefined.
 export const CompositionDetail = CompositionSummary.extend({
+  family: z.string().default(""),
+  description: z.string().default(""),
+  agentRules: z.string().optional(),
   a2ui: A2UIDocumentSchema,
 });
 export type CompositionDetail = z.infer<typeof CompositionDetail>;

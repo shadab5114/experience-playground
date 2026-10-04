@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { A2UIDocumentSchema, AgentEvent, AgentRequest } from "./index";
+import { A2UIDocumentSchema, AgentEvent, AgentRequest, CompositionDetail } from "./index";
 
 const validDoc = {
   meta: {
@@ -11,6 +11,21 @@ const validDoc = {
   },
   a2ui: [{ version: "v0.9", createSurface: { surfaceId: "main", catalogId: "x" } }],
 };
+
+describe("CompositionDetail", () => {
+  const base = { compositionId: "basic-plan-tile", name: "Basic Plan", type: "plan-tile", tags: [], a2ui: validDoc };
+
+  test("the authored prose fields default, so an older response still parses", () => {
+    const parsed = CompositionDetail.parse(base);
+    expect({ family: parsed.family, description: parsed.description }).toEqual({ family: "", description: "" });
+    expect("agentRules" in parsed).toBe(false);
+  });
+
+  test("carries the prose when it is there", () => {
+    const parsed = CompositionDetail.parse({ ...base, family: "Basic Plan Tile", description: "x", agentRules: "y" });
+    expect([parsed.family, parsed.description, parsed.agentRules]).toEqual(["Basic Plan Tile", "x", "y"]);
+  });
+});
 
 describe("contract schemas", () => {
   test("A2UIDocument accepts a v0.9 envelope", () => {

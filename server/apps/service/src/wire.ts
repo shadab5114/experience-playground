@@ -1,6 +1,15 @@
 // Picks adapters from config and builds the dependencies the HTTP door needs.
 // This is the only file that knows which concrete adapters are in use.
-import { createPool, PostgresCompositionStore, PostgresThreadLock, pingDatabase } from "@experience-agent/postgres";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  createPool,
+  importSamples,
+  PostgresAuthoringStore,
+  PostgresCompositionStore,
+  PostgresThreadLock,
+  pingDatabase,
+} from "@experience-agent/postgres";
 import { createAgentEngine, createPostgresCheckpointer } from "@experience-agent/langgraph";
 import { makeNodes, type Logger } from "@experience-agent/core";
 import { createAnthropicModel } from "@experience-agent/anthropic";
@@ -9,6 +18,12 @@ import { createVdsCatalog, readPackSettings } from "@experience-agent/vds-pack";
 import type { Config } from "./config";
 import { withListCache } from "./cache";
 import type { AppDeps } from "./http/app";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+// ds-packs live beside the apps in the server tree. Only the sample importer
+// needs the path; nothing else reads a pack from disk at runtime.
+const packDir = (name: string): string => join(HERE, "../../../ds-packs", name);
 
 // One JSON line per entry. Fields come from the caller and never include keys.
 const logger: Logger = {
@@ -25,6 +40,7 @@ export async function wire(config: Config): Promise<{ deps: AppDeps; close: () =
   const lockPool = createPool(config.db, { max: config.RUN_LOCK_POOL_SIZE, connectionTimeoutMillis: 1_000 });
   const store = new PostgresCompositionStore(pool, config.DS_PACK);
   const settings = readPackSettings();
+  const catalog = createVdsCatalog();
   const checkpointer = await createPostgresCheckpointer(pool);
 
   const nodes = makeNodes({
@@ -35,7 +51,7 @@ export async function wire(config: Config): Promise<{ deps: AppDeps; close: () =
       timeoutMs: config.MODEL_TIMEOUT_MS,
       ...(config.ANTHROPIC_WORKSPACE_ID ? { workspaceId: config.ANTHROPIC_WORKSPACE_ID } : {}),
     }),
-    catalog: createVdsCatalog(),
+    catalog,
     guidelines: config.RAG_BASE_URL
       ? createRagGuidelineSource({
           baseUrl: config.RAG_BASE_URL,
@@ -53,6 +69,11 @@ export async function wire(config: Config): Promise<{ deps: AppDeps; close: () =
     deps: {
       corsOrigins: config.CORS_ORIGINS,
       compositions: withListCache(store, config.COMPOSITION_LIST_TTL_MS),
+      authoring: {
+        authoring: new PostgresAuthoringStore(pool, config.DS_PACK, settings.a2uiVersion),
+        catalog,
+        importSamples: () => importSamples(pool, packDir(config.DS_PACK)),
+      },
       pingDatabase: () => pingDatabase(pool),
       engine: createAgentEngine({ nodes, checkpointer }),
       threadLock: new PostgresThreadLock(lockPool),

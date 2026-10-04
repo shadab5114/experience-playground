@@ -615,7 +615,7 @@ experience-agent/
     adapters/
       postgres/                   # CompositionStore, ThreadLock (all SQL lives here)
         migrations/               # 001_compositions.sql, 002_placements.sql, ...
-        seed.ts                   # upserts a pack's seed data
+        samples.ts                # insert-only import of a pack's sample content
       langgraph/                  # StateGraph wiring, AgentEngine, Postgres checkpointer
       anthropic/                  # ModelClient (base URL + key from config)
       guidelines/                 # GuidelineSource: file stub now, RAG endpoint later

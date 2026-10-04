@@ -1,0 +1,122 @@
+.mappings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+}
+
+.pageBar {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.pageBar > *:first-child {
+  min-width: 320px;
+}
+
+.flowNote {
+  font-size: 12.5px;
+  color: rgba(17, 17, 26, 0.5);
+  padding-bottom: 9px;
+}
+
+.empty {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(17, 17, 26, 0.18);
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(17, 17, 26, 0.6);
+}
+
+.empty code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* --- The slot table ------------------------------------------------------ */
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(17, 17, 26, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 130px 80px 90px;
+  align-items: center;
+  gap: 12px;
+}
+
+.headRow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 26, 0.42);
+  padding-bottom: 2px;
+}
+
+.slotId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(17, 17, 26, 0.68);
+  overflow-wrap: anywhere;
+}
+
+.slotWarning {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(154, 100, 0, 0.09);
+  color: #7a5100;
+}
+
+/* --- Preview ------------------------------------------------------------- */
+
+.previewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(17, 17, 26, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.previewTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 26, 0.45);
+}
+
+.previewStage {
+  border-radius: var(--radius-md);
+  background: #fff;
+  border: 1px solid rgba(17, 17, 26, 0.06);
+  padding: 8px;
+  overflow: auto;
+}
+
+/* The slot wrapper the renderer always emits. The outline is opted into so it
+   is obvious which part of the page is hosted content; the label is not —
+   it reads "Updated tile", which is true in the Impacts view and false here,
+   where nothing has been edited. */
+.previewStage :global(.a2ui-slot-host) {
+  outline: 1px dashed rgba(216, 18, 38, 0.45);
+  outline-offset: 6px;
+  border-radius: 6px;
+}

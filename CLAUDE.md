@@ -252,6 +252,12 @@ component" for no apparent reason. If a pds-core upgrade doesn't seem to
 take effect, check `netstat` for a lingering listener on 5173 first, kill
 it, and clear `node_modules/.vite` before trusting a negative result.
 
+**The same trap has a backend half.** A `npm run server:start` left running
+from an earlier session keeps port 8787 and goes on serving the *old* code; a
+new `server:start` fails with `EADDRINUSE` in the background and the routes you
+just added answer 404 for no apparent reason. If a new route 404s, check
+`netstat -ano | grep 8787` for a lingering listener before debugging the route.
+
 ## Progress vs. the plan's milestones (read this before assuming scope)
 Built so far, as one vertical slice rather than strict M1→M2→M3→M4 order (by
 explicit request): the A2UI renderer + Basic Plan/Home Plan/Order Summary
@@ -265,6 +271,118 @@ versions, undo/redo, status pill, Save to localStorage, JSON view, Copy
 Also built since (M5): the Impacts view — see "Impact pages: slot hosting"
 above. **Not built yet**: the leave-task unsaved-changes warning, the dev
 panel, and native tab-close prompt (M6).
+
+## Authoring UI (Studio) — S1–S5 built, remote-only
+Full plan and build order: `docs/AUTHORING_UI_PLAN.md`. The Studio lets people
+create and edit content in the UI instead of editing seed files, with Postgres
+as the single source of truth. **It is hidden in mock mode** — it writes to
+Postgres and has no mock equivalent. Open it at `#/studio` (header toggle).
+
+Built (S1–S5):
+- **S1** Seed → insert-only sample import. `server/adapters/postgres/seed.ts`
+  is now `samples.ts` (`seedPack` → `importSamples`), every statement
+  `on conflict do nothing`, and the script is `npm run db:samples`, not
+  `db:seed`. Migration `003_authoring.sql` adds `agent_rules`/`origin` to
+  compositions, `description`/`agent_rules`/`origin` to page templates, and
+  `on delete cascade` to placements and `composition_versions`.
+  Exact guarantee: `do nothing` protects rows that **exist**, so deleting a
+  *sample* row and re-importing brings it back — that is what re-importing
+  means. Authored rows the importer never knew about stay deleted.
+- **S2** `AuthoringStore` port (`packages/core/src/ports.ts`) + the Postgres
+  implementation (`adapters/postgres/authoring.ts`) + writable contract shapes
+  (`packages/contract/src/authoring.ts`). Two invariants every write holds:
+  derived columns (`components_used`, a page's `slots`) come from the document
+  and never from the caller, and `origin` is set on insert and **never touched
+  on update** — it records where a row came from, not whether anyone edited it.
+  `documentComponents`/`documentSlots` moved to `packages/core/src/document.ts`.
+- **S3** Routes under `/v1/authoring/*` (`apps/service/src/http/authoring.ts`),
+  mounted only when `AppDeps.authoring` is supplied. `POST /validate` takes
+  `a2ui` as `unknown` on purpose — the validator is defensive and an envelope
+  finding beats a schema rejection while someone is mid-paste. A `PUT` is 400
+  for a malformed request and 422 (with findings) for a document that fails
+  validation; nothing failing validation is stored. `withListCache` gained
+  `invalidate()`, which the write routes call.
+- **S4/S5** The Studio UI: a ~60-line hash router (`src/app/useHashRoute.ts`,
+  no new dependency), `AuthoringRepository` + `RemoteAuthoringRepository`,
+  `src/features/studio/studioStore.ts` (only this store calls the repository),
+  form primitives in `src/components/forms/`, and the composition editor —
+  metadata, JSON pane, live `A2UIRenderer` preview, live validation, and the
+  DERIVED / APPEARS IN / HISTORY panels.
+- **S6** The page editor and flows. `studioStore.editor` is a discriminated
+  union (`kind: 'composition' | 'page'`) rather than two parallel editors, so
+  both share one JSON pane, preview, validation and save path — `EditorPanels`
+  and `editorDocument.ts` hold what they share. A page's **slots are derived
+  from its `Slot` nodes and shown read-only**; the client never sends `slots`.
+  Validation runs with `kind: 'page'`, which is what lets `Slot` through.
+  `type` is not a curated list: the Studio derives the options from the types
+  already in use and lets any new one be named, and the agent reads the same
+  vocabulary from the same column (`CompositionStore.types()`), so a type
+  authored here is never invisible to the model. `pack.json`'s
+  `compositionTypes` is only a seed for an empty database now.
+  Flows can be created, renamed and — only while no page uses one — removed:
+  `page_templates.flow_id` is a NOT NULL foreign key with no cascade, so
+  `DELETE /v1/authoring/flows/:id` answers 409 with the page count rather than
+  letting a constraint violation surface as a 500.
+
+- **S7** The mappings builder (`MappingsSection.tsx`), page-centric because a
+  page's slots are the constraint: a composition can only go where a `Slot`
+  node already exists. The preview reuses the Impacts view's machinery exactly
+  — `rekeySurface` + `pageSurfaceId`/`slotSurfaceId` + `SurfaceRegistryProvider`,
+  documents hosted independently and never merged. Two things worth knowing:
+  the placements primary key includes `composition_id`, so changing which
+  composition sits in a slot is a remove plus an add, not an update; and a slot
+  hosts exactly one surface, so when a slot holds several placements only the
+  lowest-position one renders and the UI says so.
+
+- **S8** Authored prose reaches the model. `CompositionDetail` now carries
+  `family`/`description`/`agentRules` (defaulted, so an older response still
+  parses), `store.get` selects them, `route` puts the record it already fetched
+  on `AgentState.composition`, and `generate` appends the rules **after** the
+  retrieved guidelines — most specific last. Rules steer the model and are
+  deliberately not validator-enforced, which is why the prompt is the only
+  place they can take effect. `description` already reached the model through
+  the `find` node's disambiguation list and was left alone.
+
+  Two traps when adding a state field: the LangGraph adapter declares a channel
+  per field (`GraphState` in `adapters/langgraph/src/index.ts`) and
+  `withListCache` forwards `CompositionStore` methods by hand — miss either and
+  the field or method is silently dropped with no type error.
+
+**All of S1–S8 is built.** What the plan leaves open: Q3 (optimistic locking)
+and the repair node, which does not see a composition's rules — it only fixes
+validation errors, and rules are not validated.
+
+Decisions worth knowing before touching this (plan §8):
+- `composition_versions.saved_by` is `"studio"` for UI saves and `"agent"` for
+  agent saves. Required at every call site, never defaulted.
+- Deletes are hard deletes. The confirm dialog must name what cascades and say
+  whether a re-import can restore the record — see `CascadeWarning` in
+  `StudioView.tsx`.
+- Authored records inherit `a2ui_version` from `pack.json`; nobody is asked.
+
+Two editor rules that are easy to get wrong, both found by the e2e walkthrough:
+- `editor.parsed` is the document the **current text** parses to, `null` while
+  the text is broken. Validate and Save read only that. `editor.lastGood` is a
+  separate field the preview falls back to, so a half-typed edit does not blank
+  the tile. Saving `lastGood` would store a document the person cannot see.
+- Every `editor` update uses the functional `set((state) => …)` form. Spreading
+  a captured `editor` clobbers whatever landed concurrently (the history panel
+  loads while validation is in flight).
+
+The playground caches its picker list client-side, so Studio writes call
+`useTaskStore.getState().invalidateExperiences()` and `LeftPane` loads the list
+on mount. Without both, a tile authored in the Studio is missing from the
+picker until a full reload, which looks exactly like the save having failed.
+A placement change calls `useTaskStore.getState().reloadMapping()` for the same
+reason — otherwise a new Impacts tab only appears after reopening the task.
+`RemoteRepository.getMapping` now always overwrites its page-template cache
+rather than keeping the first copy, so a page edited in the Studio is not stale
+for the rest of the session.
+
+`tests/e2e/studio-{walk,pages,mappings}.spec.ts` drive the round trips and skip
+themselves when no backend answers on 8787. They create records and clean up
+after themselves — note that Playwright's `request` fixture is test-scoped and
+unavailable in `afterAll`, so the cleanup there uses plain `fetch`.
 
 ## Working practices for this repo
 - Do not run `git commit` unless the user explicitly asks for it in that

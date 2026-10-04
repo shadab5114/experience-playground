@@ -28,6 +28,7 @@ export const GraphState = Annotation.Root({
     default: () => [],
   }),
   route: Annotation<AgentState["route"]>(),
+  composition: Annotation<AgentState["composition"]>(),
   context: Annotation<AgentState["context"]>(),
   draft: Annotation<AgentState["draft"]>(),
   draftSummary: Annotation<AgentState["draftSummary"]>(),
